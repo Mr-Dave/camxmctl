@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head> 
+<meta charset='UTF-8'> 
+<title>Camxmctl</title> 
+<meta name='viewport' content='width=device-width, initial-scale=1'> 
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      padding: 0;
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 1rem;
+      line-height: 1;
+      color: #606c71;
+      background-color: #159957;
+      background-image: linear-gradient(120deg, #155799, #159957);
+      margin-left:0.5% ;
+      margin-right:0.5% ;
+      width: device-width ;
+    }
+    label {
+      color: black;
+    }
+    .page-header {
+      color: #fff;
+      text-align: center;
+      margin-top: 0rem;
+      margin-bottom: 0rem;
+      font-weight: normal;
+    }
+    .page-header h3 {
+      height: 2rem;
+      padding: 0;
+      margin: 1rem;
+      border: 0;
+    }
+    h3 {
+      margin-left: 10rem;
+    }
+    .header-right{
+      float: right;
+      color: white;
+    }
+    .header-center {
+      text-align: center;
+      color: white;
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+    .border {
+      border-width: 1rem;
+      border-color: white;
+      border-style: solid;
+    }
+    .sidenav {
+      height: 100%;
+      width: 10rem;
+      position: fixed;
+      z-index: 1;
+      top: 0;
+      left: 0;
+      background-color: lightgrey;
+      overflow-x: hidden;
+      overflow: auto;
+    }
+    .sidenav a, .dropbtn {
+      padding: 0.5rem 0rem 0.5em 1rem;
+      text-decoration: none;
+      font-size: 1rem;
+      display: block;
+      border: none;
+      background: none;
+      width:90%;
+      text-align: left;
+      cursor: pointer;
+      outline: none;
+      color: black;
+      background-color: lightgray;
+    }
+    .sidenav a:hover, .dropbtn:hover {
+      background-color: #555;
+      color: white;
+    }
+    .sidenav .closebtn {
+      color: black;
+      top: 0;
+      margin-left: 80%;
+      width: 1rem;
+      font-size: 1rem;
+      background-color: lightgray;
+    }
+    .sidenav .closebtn:hover {
+      background-color: lightgray;
+      color: white;
+    }
+    .menubtn {
+      top: 0;
+      width: 1rem;
+      margin-left: 0.5rem;
+      margin-bottom: 0.25rem;
+      font-size: 1.5rem;
+      color:black;
+      transform: rotate(90deg);
+      -webkit-transform: rotate(90deg);
+      background-color: transparent;
+      border-color: transparent;
+    }
+    .menubtn:hover {
+      color: white;
+    }
+    .dropdown-content {
+      display: none;
+      background-color:lightgray;
+      padding-left: 1rem;
+    }
+    .actionbtn {
+      padding: 0.25rem;
+      text-decoration: none;
+      font-size: 0.5rem;
+      display: block;
+      border: none;
+      background: none;
+      width: 3rem;
+      text-align: center;
+      cursor: pointer;
+      outline: none;
+      color: black;
+      background-color: lightgray;
+    }
+    .cls_config {
+      background-color: #000000;
+      color: #fff;
+      text-align: center;
+      margin-top: 0rem;
+      margin-bottom: 0rem;
+      font-weight: normal;
+      font-size: 0.90rem;
+    }
+    .cls_config table {
+      display: table;
+      border-spacing: 1rem;
+      margin: auto;
+    }
+    .cls_config label {
+      padding: 0rem;
+      text-align: right;
+      width: 10rem;
+      height: 2.5rem;
+    }
+    .cls_config textarea {
+      margin: auto;
+      text-align: center;
+      width: 15.5rem;
+      height: 2.5rem;
+    }
+    .cls_button {
+      width: 10rem;
+      height: 2rem;
+      padding: 0rem;
+    }
+    .cls_drop {
+      padding: 0rem;
+      text-align: right;
+      width: 10rem;
+      height: 2.25rem;
+    }
+    .cls_text {
+      padding: 0rem;
+      width: 10em;
+      text-align: right;
+    }
+    .cls_text_nbr {
+      padding: 0rem;
+      width: 10rem;
+      text-align: right;
+    }
+    .cls_text_wide {
+      padding: 0rem;
+      height: 3rem;
+      width: 20rem;
+      text-align: right;
+    }
+    .arrow {
+      border: solid black;
+      border-width: 0 1rem 1rem 0;
+      border: double black;
+      border-width: 0 0.75rem 0.75rem 0;
+      display: inline-block;
+      padding: 1rem;
+      font-size: 0.5rem;
+    }
+    a:link {
+      color: white;
+      background-color: transparent;
+      text-decoration: none;
+    }
+    a:visited {
+      color: black;
+      background-color: transparent;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body class='body' onload='initform()'>
+  
+  <div id='divmain' style='margin-left:10rem' >
+    <div id='div_config'>
+      <br><br>      
+      <div id=div_status>      
+        <table style='color:white; width:80%;' >
+          <tr>
+            <td align='center'>status</td>            
+          </tr>
+        </table>
+      </div>  
+      <table style='color:white; width:80%;' >
+        <colgroup width='20%'></colgroup>
+        <colgroup width='20%'></colgroup>
+        <colgroup width='20%'></colgroup>
+        <colgroup width='20%'></colgroup>
+        <tr>
+          <td align='left'><b>IP</b></td>
+          <td align='left'><input id=ip  type="text"></td>
+          <td align='left'><b>Port</b></td>
+          <td align='left'><input id=port  type="text" value=34567></td>
+        </tr>        
+        <tr>
+          <td align='left'><b>User</b></td>
+          <td align='left'><input id=user  type="text" value='admin'></td>
+          <td align='left'><b>Password</b></td>
+          <td align='left'><input id=password  type="text"></td>
+        </tr>
+        <tr>
+          <td><br></td>
+        </tr>
+        <tr>
+          <td><input type='button' id=getconfig value='Get Config' onclick='get_config()'></td>          
+          <td id="td0"></td>
+          <td><br></td>
+          <td><br></td>          
+        </tr>
+        <tr>
+          <td id= "td1"></td>
+          <td id= "td2"></td>
+          <td id= "td3"></td>
+          <td id= "td4"></td>
+        </tr>                        
+        <tr>
+          <td id= "td5"></td>
+          <td id= "td6"></td>
+          <td id= "td7"></td>
+          <td id= "td8"></td>
+        </tr>                        
+      </table>
+
+      <div id="div_tbl">
+      </div>
+      
+  </div>
+
+  <script>
+    var pData, pStatus, pHostFull;
+    var html_opt, html_tbl;
+    var cnt_opt, cnt_tbl;
+    
+    function initform() {
+      pHostFull = '//' + window.location.hostname;
+      pHostFull = pHostFull + ':' + window.location.port;                 
+    }
+    function status_update(msg) {
+      var html_status;
+      html_status  = "<table style='color:white; width:80%;' >";
+      html_status += "<tr><td align='center'>";
+      html_status += msg;
+      html_status += "</td></tr></table>\n";
+      document.getElementById('div_status').innerHTML = html_status;
+    }
+    function get_config() {
+      var formData = new FormData();
+      var request = new XMLHttpRequest();
+      var xmlhttp = new XMLHttpRequest();
+
+      status_update ("connecting");
+      
+      xmlhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          pData = JSON.parse(this.responseText);
+          cfg_load();         
+          status_update("ready");
+        }
+      };
+      request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          xmlhttp.open('GET', pHostFull+'/json/all');
+          xmlhttp.send();
+        }
+      };
+      formData.append('command', 'login');
+      formData.append('user', document.getElementById("user").value);
+      formData.append('password', document.getElementById("password").value);
+      formData.append('ip', document.getElementById("ip").value);
+      formData.append('port', document.getElementById("port").value);
+
+      request.open('POST', pHostFull);
+      request.send(formData);
+    }
+    
+    function set_config() {
+      var formData = new FormData();
+      var request = new XMLHttpRequest();
+      var xmlhttp = new XMLHttpRequest();
+      var pStatus, key_val, fullkey, indx, dropid, tst;
+      var jSrc, jNew, new_val,cfgitm, cfg = [];
+
+      status_update ("connecting");
+      
+      xmlhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          pStatus = JSON.parse(this.responseText);
+          status_update(pStatus['status']);          
+        }
+      };
+      request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          xmlhttp.open('GET', pHostFull+'/json/status');
+          xmlhttp.send();
+        }
+      };
+      
+      cfg[0] = document.getElementById("cfgdrop0").value;
+      jSrc = pData[cfg[0]][cfg[0]];
+      jNew = pData[cfg[0]][cfg[0]];
+      cfgitm = cfg[0];
+      
+      for (indx=1; indx <9; indx++) {
+        dropid = "cfgdrop"+indx;
+        cfg[indx] = document.getElementById(dropid).value;
+        if (document.getElementById(dropid).value != "") {
+          jNew = jNew[cfg[indx]];        
+        }
+      }
+
+      Object.entries(jNew).forEach((entry) => {
+        const [key_nm,key_val] = entry;
+        tst = typeof key_val;
+
+        if (tst != "object") {
+          if (tst == "boolean") {
+            if (document.getElementById(key_nm).value == "true"){
+              new_val = true;
+            } else {
+              new_val = false;
+            }
+          } else {
+            new_val = document.getElementById(key_nm).value;          
+          }
+          
+          if (new_val != key_val) {
+            console.log("change: "+key_nm+" >"+key_val+"<>"+new_val+"<");                
+            if (document.getElementById("cfgdrop2").value == "") {          
+              jSrc[key_nm] = new_val;  
+            } else if (document.getElementById("cfgdrop3").value == "") {
+              jSrc[ cfg[1] ][ cfg[2] ][key_nm] = new_val;
+            } else if (document.getElementById("cfgdrop4").value == "") {
+              jSrc[cfg[1]][cfg[2]][cfg[3]][key_nm] = new_val;
+            } else if (document.getElementById("cfgdrop5").value == "") {
+              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][key_nm] = new_val;
+            } else if (document.getElementById("cfgdrop6").value == "") {
+              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][key_nm] = new_val;
+            } else if (document.getElementById("cfgdrop7").value == "") {
+              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][cfg[6]][key_nm] = new_val;
+            } else if (document.getElementById("cfgdrop8").value == "") {
+              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][cfg[6]][cfg[7]][key_nm] = new_val;
+            } else if (document.getElementById("cfgdrop9").value == "") {
+              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][cfg[6]][cfg[7]][cfg[8]][key_nm] = new_val;  
+            } else {
+              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][cfg[6]][cfg[7]][cfg[8]][cfg[9]][key_nm] = new_val;
+            }
+          }
+        }  
+      })    
+          
+      key_val = JSON.stringify(jSrc);
+      
+      formData.append('command', 'SetConfig');
+      formData.append('user', document.getElementById("user").value);
+      formData.append('password', document.getElementById("password").value);
+      formData.append('ip', document.getElementById("ip").value);
+      formData.append('port', document.getElementById("port").value);
+      formData.append('key_nm',cfgitm);
+      formData.append('key_val',key_val);
+      console.log( key_val.length );
+      request.open('POST', pHostFull);
+      request.send(formData);
+    }
+
+    function ClearOpt(optobj) {
+      var indx, indx_max;      
+      indx_max = optobj.options.length - 1;
+      for(indx = indx_max; indx >= 0; indx--) {
+        optobj.remove(indx);
+      }
+    }
+
+    function cfg_load() {
+      var indx;      
+      html_opt = "";
+      html_opt += "<select class='cls_drop'";
+      html_opt += " onchange='dropchange_cfg(this, 0)'";
+      html_opt += " id='cfgdrop0'>";
+      html_opt += " <option value='SystemInfo'>SystemInfo</option>";
+      html_opt += " <option value='Alarm'>Alarm</option>";
+      html_opt += " <option value='AVEnc'>AVEnc</option>";
+      html_opt += " <option value='Camera'>Camera</option>";
+      html_opt += " <option value='Detect'>Detect</option>";
+      html_opt += " <option value='fVideo'>fVideo</option>";
+      html_opt += " <option value='General'>General</option>";
+      html_opt += " <option value='IPAdaptive'>IPAdaptive</option>";
+      html_opt += " <option value='NetWork'>NetWork</option>";
+      html_opt += " <option value='Storage'>Storage</option>";
+      html_opt += " <option value='StorageGlobal'>StorageGlobal</option>";
+      html_opt += " <option value='System'>System</option>";
+      html_opt += " <option value='Uart'>Uart</option>";
+      html_opt += "</select>";  
+      document.getElementById('td0').innerHTML = html_opt;
+      document.getElementById('cfgdrop0').selectedIndex = "-1";
+      
+      for (indx=1; indx <9; indx++) {
+        html_opt = "";
+        html_opt += "<select class='cls_drop'";
+        html_opt += " onchange='dropchange_cfg(this, "
+        html_opt += indx+")' id='cfgdrop"+indx+"'>";
+        document.getElementById('td'+indx).innerHTML = html_opt;
+      }
+    }
+
+    function tblopt_base() {
+      document.getElementById('div_tbl').innerHTML = "<table></table>";
+      html_tbl = "";
+      html_tbl += "<table style='color:white; width:80%;'>";
+      html_tbl += "<colgroup width='20%'></colgroup>";
+      html_tbl += "<colgroup width='20%'></colgroup>";
+      html_tbl += "<colgroup width='20%'></colgroup>";
+      html_tbl += "<colgroup width='20%'></colgroup>";
+      html_tbl += "<tr><td><br></td><td></td><td></td><td></td></tr>";
+      html_tbl += "<tr><td><br></td>";
+      html_tbl += " <td><input type='button'";
+      html_tbl += "   value='Set Config' ";
+      html_tbl += "   onclick=set_config()>";
+	    html_tbl += " </td>";
+      html_tbl += "</tr>";
+      html_tbl += "<tr><br><td></td><td></td><td></td><td></td></tr>";
+      html_tbl += "<tr><td></td><td> Key </td><td> Value </td><td></td></tr>"; 
+      html_tbl += "<tr><br><td></td><td></td><td></td><td></td></tr>";
+	       
+      cnt_opt = 0;
+      cnt_tbl = 0;
+    }
+
+    function tblopt_build(jData) {
+      var tst;
+
+      Object.entries(jData).forEach((entry) => {
+        const [key_nm, key_val] = entry;
+        
+        tst = typeof key_val;
+
+        if (tst == "object") {
+          html_opt += "<option value='"+key_nm+"'>"+key_nm+"</option>";
+          cnt_opt++;        
+        } else if (tst == "xstring"){            
+	        html_tbl += "<tr><td></td>";
+	        html_tbl += "<td>"+ key_nm +"</td>"; 
+	        html_tbl += "<td><textarea name='"+ key_nm +"'>";
+	        html_tbl += key_val+"</textarea></td>";
+	        html_tbl += "<td>"+fullkey+"</td></tr>";
+	        cnt_tbl++; 
+        } else if (tst == "boolean"){            
+	        html_tbl += "<tr><td></td>";
+	        html_tbl += "<td>"+ key_nm +"</td>"; 
+          html_tbl += "<td>";
+          html_tbl += " <select class='cls_drop' ";
+          html_tbl += " id='" + key_nm  + "'> ";
+          if (key_val ) {
+  	        html_tbl += " <option value='true' selected >true</option>";
+            html_tbl += " <option value='false'>false</option>";
+	        } else {
+  	        html_tbl += " <option value='true'>true</option>";
+            html_tbl += " <option value='false' selected>false</option>";
+	        }
+	        html_tbl += " </select>";
+	        html_tbl += "</td>";
+          html_tbl += "<td></td></tr>"; 	        
+	        /*
+	        html_tbl += "<td><input type='button'";
+	        html_tbl += " value='Set Config' ";
+          html_tbl += " onclick=set_config('";
+	        html_tbl += key_nm +"','"+tst+"')>";
+	        html_tbl += "</td></tr>";
+	        */
+	        cnt_tbl++;
+        } else {            
+	        html_tbl += "<tr><td></td>";
+	        html_tbl += "<td>"+ key_nm +"</td>"; 
+          html_tbl += "<td><input type='text' "; 
+          html_tbl += " style='text-align:right;'";
+          html_tbl += " name='"+key_nm+"'";
+          html_tbl += " id='" + key_nm  + "' ";          
+          html_tbl += " value='"+key_val+"'></td>";
+          html_tbl += "<td></td></tr>"; 	        
+	        /*	        
+	        html_tbl += "<td><input type='button'";
+          html_tbl += " value='Set Config' ";
+	        html_tbl += " onclick=set_config('";
+	        html_tbl += key_nm + "','" + tst + "')>";
+	        html_tbl += "</td></tr>";
+	        */
+	        cnt_tbl++; 
+        }
+        
+      });
+    }
+
+    function dropchange_cfg(cfgobj, nbr) {
+      var jData, cfgitm, indx, dropid; 
+             
+      for (indx=0; indx <9; indx++) {
+        dropid = "cfgdrop"+indx;
+        if (indx == 0) {
+          cfgitm= document.getElementById(dropid).value;
+          jData = pData[cfgitm][cfgitm];
+        } else if (indx <= nbr) {
+          cfgitm= document.getElementById(dropid).value;
+          jData = jData[cfgitm];                
+        } else {
+          ClearOpt(document.getElementById(dropid));
+        }
+      }
+    
+      indx = nbr+1;
+      dropid = "cfgdrop"+indx;
+      
+      tblopt_base();
+      html_opt = "";
+      html_opt += " <select class='cls_drop' ";
+      html_opt += " onchange='dropchange_cfg(this,"
+      html_opt += indx + ")'";
+      html_opt += " id='"+dropid+"'>";
+ 
+      tblopt_build(jData);
+
+      if (cnt_opt > 0) {
+        html_opt  += "</select>";
+        document.getElementById('td'+indx).innerHTML = html_opt;
+        document.getElementById(dropid).selectedIndex = "-1";
+      }
+      if (cnt_tbl > 0) {
+        html_tbl  += "</table>";
+        document.getElementById('div_tbl').innerHTML = html_tbl;
+      }  
+    }
+    
+
+
+
+
+
+
+
+
+
+
+    function hold_code() {
+
+      /*
+      Object.entries(jSrc).forEach((entry) => {
+      const [key_nm, key_val] = entry; 
+      var tst;
+               
+        tst = typeof key_val;
+            
+      key_val = document.getElementById(key_nm).value
+      if (key_type == 'string'){
+        key_val = "'" + key_val + "'";
+      }
+      for (indx=0; indx <9; indx++) {
+        dropid = "cfgdrop"+indx;
+        if (document.getElementById(dropid).value != "") {
+          if (indx == 0) {
+            fullkey = document.getElementById(dropid).value;
+          } else {
+            fullkey += "."+document.getElementById(dropid).value;
+          }         
+        }
+      }
+      fullkey += "."+key_nm;
+      */
+        
+
+
+
+	    var cfgobj, cfgitm;
+
+      cfgobj = document.getElementById("cfgdrop0");
+      cfgitm = cfgobj[cfgobj.selectedIndex].value;
+
+      console.log(`${key}: ${value} ,${typeof value}`);
+
+      html_tbl  = "<table style='color:white; width:80%;'>";
+      html_tbl += "<colgroup width='20%'></colgroup>";
+      html_tbl += "<colgroup width='20%'></colgroup>";
+      html_tbl += "<tr><td> Key </td><td> Value </td></tr>"; 
+      Object.entries(jData).forEach((entry) => {
+        const [key, value] = entry;              
+        html_tbl += "<tr><td>"+ key +" </td><td>"+value+"</td></tr>"; 
+      });
+      html_tbl  += "</table>";
+      document.getElementById('div_tbl1').innerHTML = html_tbl;
+
+      for (indx = 0; indx < sect.length; indx++) {
+        sect.item(indx).selectedIndex =camobj.selectedIndex;
+      }
+      //console.log(cfgitm);
+      //console.log(JSON.stringify(jData));
+      //alert(JSON.stringify(pData));
+      
+      gIndxCam = -1;
+      for (indx = 0; indx < pData['cameras']['count']; indx++) {
+        if (pData['cameras'][indx]['id'] == camobj.value) {
+          gIndxCam = indx;
+        }
+      }
+
+    }
+
+
+
+
+    function send_login() {
+      var formData = new FormData();
+      var request = new XMLHttpRequest();
+      var jData = new XMLHttpRequest();
+      var jStatus = new XMLHttpRequest();
+
+	    status_update("connecting");
+
+      jData.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          pData = JSON.parse(this.responseText);
+        }
+      };
+
+      jStatus.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          pStatus = JSON.parse(this.responseText);
+          alert(pStatus['status']);
+          status_update(pStatus['status']);
+        }
+      };
+      
+      request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          jData.open('GET', pHostFull+'/json/all');
+          jData.send();
+          
+          jStatus.open('GET', pHostFull+'/json/status');
+          jStatus.send();
+        }
+      };
+      formData.append('command', 'login');
+      formData.append('user', document.getElementById("user").value);
+      formData.append('password', document.getElementById("password").value);
+      formData.append('ip', document.getElementById("ip").value);
+      formData.append('port', document.getElementById("port").value);
+
+      request.open('POST', pHostFull);
+      request.send(formData);
+
+    }
+
+    function send_action(actval) {
+      var formData = new FormData();
+      var camid;
+      var ans;
+
+      if (actval == 'action_user') {
+        ans = prompt('Enter user parameter');
+      } else {
+        ans = '';
+      }
+
+      formData.append('command', actval);
+      formData.append('camid', camid);
+      formData.append('user', ans);
+
+      var request = new XMLHttpRequest();
+      request.open('POST', pHostFull);
+      request.send(formData);
+
+      return;
+    }
+
+    function send_reload(actval) {
+      var formData = new FormData();
+      var request = new XMLHttpRequest();
+      var xmlhttp = new XMLHttpRequest();
+      var ans;
+
+      xmlhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          pData = JSON.parse(this.responseText);
+          assign_cams();
+        }
+      };
+      request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          xmlhttp.open('GET', pHostFull+'/0/config.json');
+          xmlhttp.send();
+
+        }
+      };
+      formData.append('command', actval);
+      formData.append('camid', camid);
+
+      request.open('POST', pHostFull);
+      request.send(formData);
+    }
+    function hold() {
+      html_drop += " <select class='cls_drop' ";
+      html_drop += " onchange='dropchange_cam(this)' ";
+      html_drop += " name='camdrop'>\n";
+
+      for (indx=0; indx<camcnt; indx++) {
+        if (indx == 0) {
+          html_nav += "<a onclick='cams_all_click();'>";
+          html_nav += "All Cameras</a>\n";
+          html_nav += "<a onclick='cams_scan_click();'>";
+          html_nav += "Scan Cameras</a>\n";
+
+          html_drop += "<option ";
+          html_drop += " value='0'>default";
+          html_drop += "</option>\n";
+        }
+
+        html_nav += "<a onclick='cams_one_click(" + indx + ");'>";
+        html_nav += pData["cameras"][indx]["name"] + "</a>\n";
+        html_mov += "<a onclick='movies_click(" + indx + ");'>";
+        html_mov += pData["cameras"][indx]["name"] + "</a>";
+        html_drop += "<option ";
+        html_drop += " value='"+pData["cameras"][indx]["id"]+"'>";
+        html_drop += pData["cameras"][indx]["name"];
+        html_drop += "</option>\n";
+      }
+      html_drop += " </select>\n";
+
+}
+
+
+  </script>
+
+</body>
+</html>
