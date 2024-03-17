@@ -282,6 +282,7 @@
         std::string     port;
         std::string     cfg_nm;
         std::string     cfg_val;
+        std::string     val_out;
         std::string     ptz_action;
         std::string     ptz_duration;
     };
@@ -308,6 +309,7 @@
     void camctl_config_get_all(ctx_app *app);
     void camctl_config_get_jstr(ctx_app *app, std::string jstr);
     void camctl_config_set(ctx_app *app);
+    void camctl_config_setreboot(ctx_app *app);
     void camctl_cmd_send(ctx_app *app, const char *cmd, const char *subcmd);
     void camctl_cmd_ptz(ctx_app *app);
 

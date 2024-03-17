@@ -27,42 +27,46 @@
 void webu_post_cmdindx(ctx_webui *webui)
 {
     int indx;
+    std::string keyval;
 
     webui->post_cmd = "";
 
     for (indx = 0; indx < webui->post_sz; indx++) {
+        keyval = std::string(webui->post_info[indx].key_val);
         if (mystreq(webui->post_info[indx].key_nm, "command")) {
-            webui->post_cmd = webui->post_info[indx].key_val;
+            webui->post_cmd = keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "ip")) {
-            webui->app->caminfo.ip = webui->post_info[indx].key_val;
+            webui->app->caminfo.ip =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "port")) {
-            webui->app->caminfo.port = webui->post_info[indx].key_val;
+            webui->app->caminfo.port =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "user")) {
-            webui->app->caminfo.user = webui->post_info[indx].key_val;
+            webui->app->caminfo.user = keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "password")) {
-            webui->app->caminfo.pwd = webui->post_info[indx].key_val;
+            webui->app->caminfo.pwd = keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "key_nm")) {
-            webui->app->caminfo.cfg_nm = webui->post_info[indx].key_val;
+            webui->app->caminfo.cfg_nm =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "key_val")) {
-            webui->app->caminfo.cfg_val = webui->post_info[indx].key_val;
+            webui->app->caminfo.cfg_val =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "ptz_action")) {
-            webui->app->caminfo.ptz_action = webui->post_info[indx].key_val;
+            webui->app->caminfo.ptz_action =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "ptz_duration")) {
-            webui->app->caminfo.ptz_duration = webui->post_info[indx].key_val;
+            webui->app->caminfo.ptz_duration = keyval;
         }
 
-        LOG_MSG(INF, NO_ERRNO ,"key: %s  value: %s "
+        LOG_MSG(DBG, NO_ERRNO ,"key: %s  value: %s "
             , webui->post_info[indx].key_nm
             , webui->post_info[indx].key_val
         );
+
+        //fprintf(stderr, "\n\n%s\n\n",webui->app->caminfo.cfg_val.c_str());
     }
 
     if (webui->post_cmd == "") {
@@ -70,7 +74,6 @@ void webu_post_cmdindx(ctx_webui *webui)
             , "Invalid post request.  No command");
         return;
     }
-
 }
 
 /* Process the actions from the webcontrol that the user requested */
@@ -90,11 +93,22 @@ void webu_post_main(ctx_webui *webui)
     } else if (webui->post_cmd == "logout") {
         camctl_logout(webui->app);
     } else if (webui->post_cmd == "configset") {
+        camctl_login(webui->app);
         camctl_config_set(webui->app);
-    } else if (webui->post_cmd == "ptz") {
-        camctl_cmd_ptz(webui->app);
-    } else if (webui->post_cmd == "reboot") {
+        camctl_logout(webui->app);
+    } else if (webui->post_cmd == "configsetreboot") {
+        camctl_login(webui->app);
+        camctl_config_set(webui->app);
         camctl_cmd_send(webui->app,"reboot","");
+        camctl_logout(webui->app);
+    } else if (webui->post_cmd == "ptz") {
+        camctl_login(webui->app);
+        camctl_cmd_ptz(webui->app);
+        camctl_logout(webui->app);
+    } else if (webui->post_cmd == "reboot") {
+        camctl_login(webui->app);
+        camctl_cmd_send(webui->app,"reboot","");
+        camctl_logout(webui->app);
     } else {
         LOG_MSG(INF, NO_ERRNO
             , "Invalid action requested: command: >%s< "

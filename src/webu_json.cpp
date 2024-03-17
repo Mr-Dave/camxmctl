@@ -212,7 +212,7 @@ void webu_json_config(ctx_webui *webui)
     if (webui->uri_cmd1 == "all") {
         webui->app->status_msg = "";
         camctl_config_get_all(webui->app);
-        webui->resp_page = webui->app->caminfo.cfg_val;
+        webui->resp_page = webui->app->caminfo.val_out;
 
     } else if (webui->uri_cmd1 == "status") {
         webui->resp_page += "{\"status\" : \"";
@@ -224,7 +224,7 @@ void webu_json_config(ctx_webui *webui)
 
     } else {
         camctl_config_get_jstr(webui->app, webui->uri_cmd1);
-        webui->resp_page = webui->app->caminfo.cfg_val;
+        webui->resp_page = webui->app->caminfo.val_out;
     }
 }
 

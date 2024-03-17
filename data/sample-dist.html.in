@@ -2,7 +2,7 @@
 <html lang='en'>
 <head> 
 <meta charset='UTF-8'> 
-<title>Camxmctl</title> 
+<title>CamxmctlDev</title> 
 <meta name='viewport' content='width=device-width, initial-scale=1'> 
   <style>
     * {
@@ -168,6 +168,11 @@
       width: 10rem;
       height: 2.25rem;
     }
+    .cls_ip {
+      padding: 0rem;
+      width: 8em;
+      text-align: right;
+    }
     .cls_text {
       padding: 0rem;
       width: 10em;
@@ -203,6 +208,10 @@
       background-color: transparent;
       text-decoration: none;
     }
+    .cmdbtn {
+      width:3.5rem;
+      text-align:center;
+    } 
   </style>
 </head>
 
@@ -235,26 +244,62 @@
           <td align='left'><b>Password</b></td>
           <td align='left'><input id=password  type="text"></td>
         </tr>
+        <tr><td><br></td></tr>
         <tr>
-          <td><br></td>
+          <td>
+          <label for='ptz_down' style='text-align:center;' >Pan/Tilt</label>
+          <br>          
+          <input type='button' id=ptz_up   value='Up'   class='cmdbtn' onclick='cmd_ptz("DirectionUp")'>
+          <input type='button' id=ptz_down value='Down' class='cmdbtn' onclick='cmd_ptz("DirectionDown")'>          
+          <br>
+          <input type='button' id=ptz_up   value='Left' class='cmdbtn' onclick='cmd_ptz("DirectionLeft")'>          
+          <input type='button' id=ptz_up   value='Right' class='cmdbtn' onclick='cmd_ptz("DirectionRight")'>
+          </td>          
+          <td>
+          <label for='ptz_zoomin' style='text-align:center;' >Zoom</label>
+          <br><input type='button' id=ptz_zoomin value='In'   class='cmdbtn' onclick='cmd_ptz("ZoomTile")'>
+          <input type='button' id=ptz_zoomout value='Out' class='cmdbtn' onclick='cmd_ptz("ZoomWide")'>          
+          <br>
+          <label for='ptz_dur' style='text-align:center;' >PTZ Duration(Seconds)</label>
+          <br>          
+          <input type='text' style='text-align:right;' id='ptz_dur' value='0.5'></td>
+          </td>          
+          <td>
+          <td>
+            <input type='button' id=reboot    value='Reboot' class='cmdbtn' onclick='cmd_reboot()'>
+            <input type='button' id=configget value='Config' class='cmdbtn' onclick='get_config()'>
+            <br>
+            <input type='button' id=users  value='Users' class='cmdbtn' onclick='get_users()'>
+            <input type='button' id=groups value='Groups' class='cmdbtn' onclick='get_groups()'>
+          </td>
+          <td>
+          </td>        
         </tr>
+        <tr><td><br></td></tr>
+        <tr><td><br></td></tr>
         <tr>
-          <td><input type='button' id=getconfig value='Get Config' onclick='get_config()'></td>          
-          <td id="td0"></td>
+                    
           <td><br></td>
           <td><br></td>          
         </tr>
+
         <tr>
-          <td id= "td1"></td>
-          <td id= "td2"></td>
-          <td id= "td3"></td>
-          <td id= "td4"></td>
+          <td id="td00"></td>          
+          <td id="td01"></td>
+          <td id="td02"></td>
+          <td id="td03"></td>          
+        </tr>
+        <tr>
+          <td id= "td10"></td>
+          <td id= "td11"></td>
+          <td id= "td12"></td>
+          <td id= "td13"></td>
         </tr>                        
         <tr>
-          <td id= "td5"></td>
-          <td id= "td6"></td>
-          <td id= "td7"></td>
-          <td id= "td8"></td>
+          <td id= "td20"></td>
+          <td id= "td21"></td>
+          <td id= "td22"></td>
+          <td id= "td23"></td>
         </tr>                        
       </table>
 
@@ -264,13 +309,16 @@
   </div>
 
   <script>
-    var pData, pStatus, pHostFull;
+    var pData, pUsers, pGroups;
+    var pStatus, pHostFull;
     var html_opt, html_tbl;
     var cnt_opt, cnt_tbl;
+    var set_reboot;
     
     function initform() {
       pHostFull = '//' + window.location.hostname;
-      pHostFull = pHostFull + ':' + window.location.port;                 
+      pHostFull = pHostFull + ':' + window.location.port;
+      set_reboot = false;                 
     }
     function status_update(msg) {
       var html_status;
@@ -280,27 +328,18 @@
       html_status += "</td></tr></table>\n";
       document.getElementById('div_status').innerHTML = html_status;
     }
-    function get_config() {
+    function cmd_reboot() {
       var formData = new FormData();
       var request = new XMLHttpRequest();
-      var xmlhttp = new XMLHttpRequest();
 
       status_update ("connecting");
       
-      xmlhttp.onreadystatechange = function() {
+      request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-          pData = JSON.parse(this.responseText);
-          cfg_load();         
           status_update("ready");
         }
       };
-      request.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          xmlhttp.open('GET', pHostFull+'/json/all');
-          xmlhttp.send();
-        }
-      };
-      formData.append('command', 'login');
+      formData.append('command', 'reboot');
       formData.append('user', document.getElementById("user").value);
       formData.append('password', document.getElementById("password").value);
       formData.append('ip', document.getElementById("ip").value);
@@ -309,8 +348,176 @@
       request.open('POST', pHostFull);
       request.send(formData);
     }
-    
-    function set_config() {
+    function cmd_ptz(ptz_action) {
+      var formData = new FormData();
+      var request = new XMLHttpRequest();
+
+      status_update ("connecting");
+      
+      request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          status_update("ready");
+        }
+      };
+      formData.append('command', 'ptz');
+      formData.append('user', document.getElementById("user").value);
+      formData.append('password', document.getElementById("password").value);
+      formData.append('ip', document.getElementById("ip").value);
+      formData.append('port', document.getElementById("port").value);
+      formData.append('ptz_action', 'ptz_action');
+      formData.append('ptz_duration', document.getElementById("ptz_dur").value);
+      
+      request.open('POST', pHostFull);
+      request.send(formData);
+    }
+    function get_config() {
+      var frmdata = new FormData();
+      var request = new XMLHttpRequest();
+      var xmlhttp = new XMLHttpRequest();
+
+      status_update ("connecting");
+      
+      xmlhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          pData = JSON.parse(this.responseText);
+          set_reboot = false;
+          load_config();
+          frmdata.set('command','logout');          
+          request.open('POST', pHostFull);
+          request.send(frmdata);
+        }
+      };
+      request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          if (frmdata.get('command') == 'login') {
+            status_update("Logged in");       
+            xmlhttp.open('GET', pHostFull+'/json/all');
+            xmlhttp.send();
+            status_update("Getting configuration");
+          } else {
+            status_update("ready");
+          }
+        }
+      };
+      frmdata.append('command', 'login');
+      frmdata.append('user', document.getElementById("user").value);
+      frmdata.append('password', document.getElementById("password").value);
+      frmdata.append('ip', document.getElementById("ip").value);
+      frmdata.append('port', document.getElementById("port").value);
+
+      request.open('POST', pHostFull);
+      request.send(frmdata);
+    }
+    function get_users() {
+      var frmdata = new FormData();
+      var request = new XMLHttpRequest();
+      var xmlhttp = new XMLHttpRequest();
+
+      status_update ("connecting");
+      
+      xmlhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          pUsers = JSON.parse(this.responseText);
+          load_users();
+          frmdata.set('command','logout');          
+          request.open('POST', pHostFull);
+          request.send(frmdata);
+        }
+      };
+      request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          if (frmdata.get('command') == 'login') {
+            status_update("Logged in");       
+            xmlhttp.open('GET', pHostFull+'/json/users');
+            xmlhttp.send();
+            status_update("Getting users");
+          } else {
+            status_update("ready");
+          }
+        }
+      };
+      frmdata.append('command', 'login');
+      frmdata.append('user', document.getElementById("user").value);
+      frmdata.append('password', document.getElementById("password").value);
+      frmdata.append('ip', document.getElementById("ip").value);
+      frmdata.append('port', document.getElementById("port").value);
+
+      request.open('POST', pHostFull);
+      request.send(frmdata);
+    }
+    function get_groups() {
+      var frmdata = new FormData();
+      var request = new XMLHttpRequest();
+      var xmlhttp = new XMLHttpRequest();
+
+      status_update ("connecting");
+      
+      xmlhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          pGroups = JSON.parse(this.responseText);
+          load_groups();
+          frmdata.set('command','logout');          
+          request.open('POST', pHostFull);
+          request.send(frmdata);
+        }
+      };
+      request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          if (frmdata.get('command') == 'login') {
+            status_update("Logged in");       
+            xmlhttp.open('GET', pHostFull+'/json/users');
+            xmlhttp.send();
+            status_update("Getting groups");
+          } else {
+            status_update("ready");
+          }
+        }
+      };
+      frmdata.append('command', 'login');
+      frmdata.append('user', document.getElementById("user").value);
+      frmdata.append('password', document.getElementById("password").value);
+      frmdata.append('ip', document.getElementById("ip").value);
+      frmdata.append('port', document.getElementById("port").value);
+
+      request.open('POST', pHostFull);
+      request.send(frmdata);
+    }
+    function config_ip(idnm) {
+      var ipstr, ipnew;
+      pos = new Array(-1,-1,-1,-1);
+      ipval = new Array(-1,-1,-1,-1);
+      iphx = new Array("","","","");
+      
+      ipstr = document.getElementById(idnm+"1").value;
+
+      for (indx=0; indx < 4; indx++) {
+        pos[indx]=ipstr.indexOf(".");
+        if (indx < 3) {
+          if (pos[indx] < 0) {
+            alert("Invalid IP");
+            return;          
+          }        
+          ipval[indx] = ipstr.substr(0, pos[indx]);
+        } else {
+          ipval[indx] = ipstr;
+        }
+        if (ipval[indx] > 255){
+          alert("Invalid IP");
+          return;          
+        }        
+        ipstr = ipstr.substr(pos[indx]+1);
+        iphx[indx] = ("00" + parseInt(ipval[indx]).toString(16)).toUpperCase();      
+        iphx[indx] = iphx[indx].substr(iphx[indx].length -2);
+      }
+      ipstr = document.getElementById(idnm+"1").value;
+      ipnew = "0x"+iphx[3]+iphx[2]+iphx[1]+iphx[0];
+      if (document.getElementById(idnm).value != ipnew) {
+        document.getElementById(idnm).value = ipnew;
+        set_reboot = true;        
+      }
+      
+    }
+    function config_set() {
       var formData = new FormData();
       var request = new XMLHttpRequest();
       var xmlhttp = new XMLHttpRequest();
@@ -341,6 +548,7 @@
         dropid = "cfgdrop"+indx;
         cfg[indx] = document.getElementById(dropid).value;
         if (document.getElementById(dropid).value != "") {
+          //console.log("Create jNew: "+cfg[indx]);
           jNew = jNew[cfg[indx]];        
         }
       }
@@ -361,11 +569,11 @@
           }
           
           if (new_val != key_val) {
-            console.log("change: "+key_nm+" >"+key_val+"<>"+new_val+"<");                
+            //console.log("change: "+key_nm+" >"+key_val+"<>"+new_val+"<");                
             if (document.getElementById("cfgdrop2").value == "") {          
               jSrc[key_nm] = new_val;  
             } else if (document.getElementById("cfgdrop3").value == "") {
-              jSrc[ cfg[1] ][ cfg[2] ][key_nm] = new_val;
+              jSrc[cfg[1]][cfg[2]][key_nm] = new_val;
             } else if (document.getElementById("cfgdrop4").value == "") {
               jSrc[cfg[1]][cfg[2]][cfg[3]][key_nm] = new_val;
             } else if (document.getElementById("cfgdrop5").value == "") {
@@ -386,28 +594,30 @@
       })    
           
       key_val = JSON.stringify(jSrc);
-      
-      formData.append('command', 'SetConfig');
+     
+      if (set_reboot == true) {
+        formData.append('command', 'configsetreboot');
+      } else {
+        formData.append('command', 'configset');
+      }
       formData.append('user', document.getElementById("user").value);
       formData.append('password', document.getElementById("password").value);
       formData.append('ip', document.getElementById("ip").value);
       formData.append('port', document.getElementById("port").value);
       formData.append('key_nm',cfgitm);
       formData.append('key_val',key_val);
-      console.log( key_val.length );
+      // console.log( key_val );
       request.open('POST', pHostFull);
       request.send(formData);
     }
-
-    function ClearOpt(optobj) {
+    function opt_clear(optobj) {
       var indx, indx_max;      
       indx_max = optobj.options.length - 1;
       for(indx = indx_max; indx >= 0; indx--) {
         optobj.remove(indx);
       }
     }
-
-    function cfg_load() {
+    function load_config() {
       var indx;      
       html_opt = "";
       html_opt += "<select class='cls_drop'";
@@ -427,44 +637,115 @@
       html_opt += " <option value='System'>System</option>";
       html_opt += " <option value='Uart'>Uart</option>";
       html_opt += "</select>";  
-      document.getElementById('td0').innerHTML = html_opt;
+      document.getElementById('td00').innerHTML = html_opt;
       document.getElementById('cfgdrop0').selectedIndex = "-1";
+      document.getElementById('div_tbl').innerHTML = "<table></table>";
       
-      for (indx=1; indx <9; indx++) {
+      for (indx=1; indx <=8; indx++) {
         html_opt = "";
         html_opt += "<select class='cls_drop'";
         html_opt += " onchange='dropchange_cfg(this, "
         html_opt += indx+")' id='cfgdrop"+indx+"'>";
-        document.getElementById('td'+indx).innerHTML = html_opt;
+        if (indx <= 4) {
+          document.getElementById('td1'+(indx-1)).innerHTML = html_opt;
+        } else if (indx <= 8) {
+          document.getElementById('td2'+(indx-5)).innerHTML = html_opt;
+        }  
       }
     }
-
+    function load_users() {
+ 
+    }
+    function load_groups() {
+ 
+    }
     function tblopt_base() {
       document.getElementById('div_tbl').innerHTML = "<table></table>";
       html_tbl = "";
       html_tbl += "<table style='color:white; width:80%;'>";
       html_tbl += "<colgroup width='20%'></colgroup>";
       html_tbl += "<colgroup width='20%'></colgroup>";
-      html_tbl += "<colgroup width='20%'></colgroup>";
-      html_tbl += "<colgroup width='20%'></colgroup>";
+      html_tbl += "<colgroup width='10%'></colgroup>";
+      html_tbl += "<colgroup width='10%'></colgroup>";
+      html_tbl += "<colgroup width='5%'></colgroup>";
+      html_tbl += "<colgroup width='5%'></colgroup>";
+      html_tbl += "<colgroup width='10%'></colgroup>";
       html_tbl += "<tr><td><br></td><td></td><td></td><td></td></tr>";
-      html_tbl += "<tr><td><br></td>";
+      html_tbl += "<tr>";
       html_tbl += " <td><input type='button'";
       html_tbl += "   value='Set Config' ";
-      html_tbl += "   onclick=set_config()>";
+      html_tbl += "   onclick=config_set()>";
 	    html_tbl += " </td>";
       html_tbl += "</tr>";
       html_tbl += "<tr><br><td></td><td></td><td></td><td></td></tr>";
-      html_tbl += "<tr><td></td><td> Key </td><td> Value </td><td></td></tr>"; 
+      html_tbl += "<tr><td> Key </td><td> Value </td><td></td></tr>"; 
       html_tbl += "<tr><br><td></td><td></td><td></td><td></td></tr>";
 	       
       cnt_opt = 0;
       cnt_tbl = 0;
     }
+    function tblopt_bool(key_nm, key_val) {
+      html_tbl += "<tr>";
+	    html_tbl += "<td>"+ key_nm +"</td>"; 
+      html_tbl += "<td>";
+      html_tbl += " <select class='cls_drop' ";
+      html_tbl += " id='" + key_nm  + "'> ";
+      if (key_val ) {
+  	    html_tbl += " <option value='true' selected >true</option>";
+        html_tbl += " <option value='false'>false</option>";
+	    } else {
+  	    html_tbl += " <option value='true'>true</option>";
+        html_tbl += " <option value='false' selected>false</option>";
+	    }
+	    html_tbl += " </select>";
+	    html_tbl += "</td>";
+      html_tbl += "<td></td></tr>"; 	        
+	    cnt_tbl++;
+    }
+    function tblopt_ip(key_nm, key_val) {
+      var tmp;
+      html_tbl += "<tr>";
+      html_tbl += "<td>"+ key_nm +"</td>"; 
+      html_tbl += "<td><input type='text' "; 
+      html_tbl += " style='text-align:right;'";
+      html_tbl += " name='"+key_nm+"'";
+      html_tbl += " id='" + key_nm  + "' ";          
+      html_tbl += " value='"+key_val+"' disabled></td>";
+      
+      html_tbl += "<td><input type='text' "; 
+      html_tbl += " class='cls_ip'";
+      html_tbl += " name='"+key_nm+"1'";
+      html_tbl += " id='" + key_nm  + "1' ";          
+      html_tbl += " value='"
+      html_tbl += parseInt(key_val.substr(8,2),16)+".";
+      html_tbl += parseInt(key_val.substr(6,2),16)+".";
+      html_tbl += parseInt(key_val.substr(4,2),16)+".";
+      html_tbl += parseInt(key_val.substr(2,2),16);
+      html_tbl += "'</td>";
+      html_tbl += " <td><input type='button'";
+      html_tbl += "   value='Set IP' ";
+      html_tbl += "   onclick=config_ip('";
+      html_tbl += key_nm  + "')> "   
+	    html_tbl += " </td>";
 
+      html_tbl += "</tr>"; 	        
+	    cnt_tbl++; 
+    }
+    function tblopt_other(key_nm, key_val) {
+      html_tbl += "<tr>";
+      html_tbl += "<td>"+ key_nm +"</td>"; 
+      html_tbl += "<td><input type='text' "; 
+      html_tbl += " style='text-align:right;'";
+      html_tbl += " name='"+key_nm+"'";
+      html_tbl += " id='" + key_nm  + "' ";          
+      html_tbl += " value='"+key_val+"'></td>";
+      html_tbl += "<td></td></tr>"; 	        
+	    cnt_tbl++; 
+    }
     function tblopt_build(jData) {
-      var tst;
-
+      if (typeof jData == "undefined") {
+        return;
+      }      
       Object.entries(jData).forEach((entry) => {
         const [key_nm, key_val] = entry;
         
@@ -473,59 +754,21 @@
         if (tst == "object") {
           html_opt += "<option value='"+key_nm+"'>"+key_nm+"</option>";
           cnt_opt++;        
-        } else if (tst == "xstring"){            
-	        html_tbl += "<tr><td></td>";
-	        html_tbl += "<td>"+ key_nm +"</td>"; 
-	        html_tbl += "<td><textarea name='"+ key_nm +"'>";
-	        html_tbl += key_val+"</textarea></td>";
-	        html_tbl += "<td>"+fullkey+"</td></tr>";
-	        cnt_tbl++; 
         } else if (tst == "boolean"){            
-	        html_tbl += "<tr><td></td>";
-	        html_tbl += "<td>"+ key_nm +"</td>"; 
-          html_tbl += "<td>";
-          html_tbl += " <select class='cls_drop' ";
-          html_tbl += " id='" + key_nm  + "'> ";
-          if (key_val ) {
-  	        html_tbl += " <option value='true' selected >true</option>";
-            html_tbl += " <option value='false'>false</option>";
-	        } else {
-  	        html_tbl += " <option value='true'>true</option>";
-            html_tbl += " <option value='false' selected>false</option>";
-	        }
-	        html_tbl += " </select>";
-	        html_tbl += "</td>";
-          html_tbl += "<td></td></tr>"; 	        
-	        /*
-	        html_tbl += "<td><input type='button'";
-	        html_tbl += " value='Set Config' ";
-          html_tbl += " onclick=set_config('";
-	        html_tbl += key_nm +"','"+tst+"')>";
-	        html_tbl += "</td></tr>";
-	        */
-	        cnt_tbl++;
+          tblopt_bool(key_nm, key_val);
         } else {            
-	        html_tbl += "<tr><td></td>";
-	        html_tbl += "<td>"+ key_nm +"</td>"; 
-          html_tbl += "<td><input type='text' "; 
-          html_tbl += " style='text-align:right;'";
-          html_tbl += " name='"+key_nm+"'";
-          html_tbl += " id='" + key_nm  + "' ";          
-          html_tbl += " value='"+key_val+"'></td>";
-          html_tbl += "<td></td></tr>"; 	        
-	        /*	        
-	        html_tbl += "<td><input type='button'";
-          html_tbl += " value='Set Config' ";
-	        html_tbl += " onclick=set_config('";
-	        html_tbl += key_nm + "','" + tst + "')>";
-	        html_tbl += "</td></tr>";
-	        */
-	        cnt_tbl++; 
+          if ((key_nm == "GateWay")     ||  (key_nm == "HostIP") || 
+              (key_nm == "Submask")     ||  (key_nm == "DnsServer1") ||  
+              (key_nm == "DnsServer2")  ||  (key_nm == "SpareAddress") ||
+              (key_nm == "Address")) {
+            tblopt_ip(key_nm, key_val);
+          } else {
+            tblopt_other(key_nm, key_val);
+          }
         }
         
       });
     }
-
     function dropchange_cfg(cfgobj, nbr) {
       var jData, cfgitm, indx, dropid; 
              
@@ -538,7 +781,7 @@
           cfgitm= document.getElementById(dropid).value;
           jData = jData[cfgitm];                
         } else {
-          ClearOpt(document.getElementById(dropid));
+          opt_clear(document.getElementById(dropid));
         }
       }
     
@@ -556,7 +799,11 @@
 
       if (cnt_opt > 0) {
         html_opt  += "</select>";
-        document.getElementById('td'+indx).innerHTML = html_opt;
+        if (indx <= 4) {
+          document.getElementById('td1'+(indx-1)).innerHTML = html_opt;
+        } else if (indx <= 8) {
+          document.getElementById('td2'+(indx-5)).innerHTML = html_opt;
+        }  
         document.getElementById(dropid).selectedIndex = "-1";
       }
       if (cnt_tbl > 0) {
@@ -564,202 +811,6 @@
         document.getElementById('div_tbl').innerHTML = html_tbl;
       }  
     }
-    
-
-
-
-
-
-
-
-
-
-
-    function hold_code() {
-
-      /*
-      Object.entries(jSrc).forEach((entry) => {
-      const [key_nm, key_val] = entry; 
-      var tst;
-               
-        tst = typeof key_val;
-            
-      key_val = document.getElementById(key_nm).value
-      if (key_type == 'string'){
-        key_val = "'" + key_val + "'";
-      }
-      for (indx=0; indx <9; indx++) {
-        dropid = "cfgdrop"+indx;
-        if (document.getElementById(dropid).value != "") {
-          if (indx == 0) {
-            fullkey = document.getElementById(dropid).value;
-          } else {
-            fullkey += "."+document.getElementById(dropid).value;
-          }         
-        }
-      }
-      fullkey += "."+key_nm;
-      */
-        
-
-
-
-	    var cfgobj, cfgitm;
-
-      cfgobj = document.getElementById("cfgdrop0");
-      cfgitm = cfgobj[cfgobj.selectedIndex].value;
-
-      console.log(`${key}: ${value} ,${typeof value}`);
-
-      html_tbl  = "<table style='color:white; width:80%;'>";
-      html_tbl += "<colgroup width='20%'></colgroup>";
-      html_tbl += "<colgroup width='20%'></colgroup>";
-      html_tbl += "<tr><td> Key </td><td> Value </td></tr>"; 
-      Object.entries(jData).forEach((entry) => {
-        const [key, value] = entry;              
-        html_tbl += "<tr><td>"+ key +" </td><td>"+value+"</td></tr>"; 
-      });
-      html_tbl  += "</table>";
-      document.getElementById('div_tbl1').innerHTML = html_tbl;
-
-      for (indx = 0; indx < sect.length; indx++) {
-        sect.item(indx).selectedIndex =camobj.selectedIndex;
-      }
-      //console.log(cfgitm);
-      //console.log(JSON.stringify(jData));
-      //alert(JSON.stringify(pData));
-      
-      gIndxCam = -1;
-      for (indx = 0; indx < pData['cameras']['count']; indx++) {
-        if (pData['cameras'][indx]['id'] == camobj.value) {
-          gIndxCam = indx;
-        }
-      }
-
-    }
-
-
-
-
-    function send_login() {
-      var formData = new FormData();
-      var request = new XMLHttpRequest();
-      var jData = new XMLHttpRequest();
-      var jStatus = new XMLHttpRequest();
-
-	    status_update("connecting");
-
-      jData.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          pData = JSON.parse(this.responseText);
-        }
-      };
-
-      jStatus.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          pStatus = JSON.parse(this.responseText);
-          alert(pStatus['status']);
-          status_update(pStatus['status']);
-        }
-      };
-      
-      request.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          jData.open('GET', pHostFull+'/json/all');
-          jData.send();
-          
-          jStatus.open('GET', pHostFull+'/json/status');
-          jStatus.send();
-        }
-      };
-      formData.append('command', 'login');
-      formData.append('user', document.getElementById("user").value);
-      formData.append('password', document.getElementById("password").value);
-      formData.append('ip', document.getElementById("ip").value);
-      formData.append('port', document.getElementById("port").value);
-
-      request.open('POST', pHostFull);
-      request.send(formData);
-
-    }
-
-    function send_action(actval) {
-      var formData = new FormData();
-      var camid;
-      var ans;
-
-      if (actval == 'action_user') {
-        ans = prompt('Enter user parameter');
-      } else {
-        ans = '';
-      }
-
-      formData.append('command', actval);
-      formData.append('camid', camid);
-      formData.append('user', ans);
-
-      var request = new XMLHttpRequest();
-      request.open('POST', pHostFull);
-      request.send(formData);
-
-      return;
-    }
-
-    function send_reload(actval) {
-      var formData = new FormData();
-      var request = new XMLHttpRequest();
-      var xmlhttp = new XMLHttpRequest();
-      var ans;
-
-      xmlhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          pData = JSON.parse(this.responseText);
-          assign_cams();
-        }
-      };
-      request.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          xmlhttp.open('GET', pHostFull+'/0/config.json');
-          xmlhttp.send();
-
-        }
-      };
-      formData.append('command', actval);
-      formData.append('camid', camid);
-
-      request.open('POST', pHostFull);
-      request.send(formData);
-    }
-    function hold() {
-      html_drop += " <select class='cls_drop' ";
-      html_drop += " onchange='dropchange_cam(this)' ";
-      html_drop += " name='camdrop'>\n";
-
-      for (indx=0; indx<camcnt; indx++) {
-        if (indx == 0) {
-          html_nav += "<a onclick='cams_all_click();'>";
-          html_nav += "All Cameras</a>\n";
-          html_nav += "<a onclick='cams_scan_click();'>";
-          html_nav += "Scan Cameras</a>\n";
-
-          html_drop += "<option ";
-          html_drop += " value='0'>default";
-          html_drop += "</option>\n";
-        }
-
-        html_nav += "<a onclick='cams_one_click(" + indx + ");'>";
-        html_nav += pData["cameras"][indx]["name"] + "</a>\n";
-        html_mov += "<a onclick='movies_click(" + indx + ");'>";
-        html_mov += pData["cameras"][indx]["name"] + "</a>";
-        html_drop += "<option ";
-        html_drop += " value='"+pData["cameras"][indx]["id"]+"'>";
-        html_drop += pData["cameras"][indx]["name"];
-        html_drop += "</option>\n";
-      }
-      html_drop += " </select>\n";
-
-}
-
 
   </script>
 

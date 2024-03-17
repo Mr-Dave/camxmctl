@@ -209,7 +209,7 @@ void camctl_socket_read(ctx_app *app)
         memcpy(&resp, buffer_out, sizeof(struct ctx_msgresp));
         app->caminfo.cnct.sid = resp.msg_sid;
         app->caminfo.cnct.seq = resp.msg_seq;
-        app->caminfo.cfg_val += std::string(buffer_out + 20).substr(0, bytes_read - 20);
+        app->caminfo.val_out += std::string(buffer_out + 20).substr(0, bytes_read - 20);
         nbytes = resp.msg_size + 20 - bytes_read;
         if (nbytes < 0) {
            nbytes = 0;
@@ -217,7 +217,7 @@ void camctl_socket_read(ctx_app *app)
         while (nbytes > 0) {
             memset(buffer_out, 0, 1024);
             bytes_read = read(app->caminfo.cnct.sockfd, buffer_out, 1024);
-            app->caminfo.cfg_val += std::string(buffer_out).substr(0, bytes_read);
+            app->caminfo.val_out += std::string(buffer_out).substr(0, bytes_read);
             nbytes = nbytes - bytes_read;
         }
         app->status_msg += "Success. ";
@@ -366,12 +366,14 @@ void camctl_login(ctx_app *app)
     camctl_socket_read(app);
 
     if (app->caminfo.cnct.sid == 0) {
-        LOG_MSG(INF, NO_ERRNO,"Login failed");
+        LOG_MSG(INF, NO_ERRNO,"Login failed.");
         app->status_msg += "Failed.";
     } else {
         LOG_MSG(INF, NO_ERRNO,"Logged in");
         app->status_msg += "Success.";
     }
+    LOG_MSG(DBG, NO_ERRNO,"Login response:%s", app->caminfo.val_out.c_str());
+    app->caminfo.val_out = "";
 }
 
 void camctl_cmd_send(ctx_app *app, const char *cmd, const char *subcmd)
@@ -507,11 +509,11 @@ void camctl_config_get_all(ctx_app *app)
     if (app->caminfo.cnct.sid == 0) {
         std::ifstream ifs;
         std::string line;
-        app->caminfo.cfg_val  = "";
+        app->caminfo.val_out  = "";
         ifs.open("/home/dave/source/camxmctl/all.json");
             while (std::getline(ifs, line)) {
                 mytrim(line);
-                app->caminfo.cfg_val += line;
+                app->caminfo.val_out += line;
             }
         ifs.close();
         LOG_MSG(INF, NO_ERRNO,"Using the test file");
@@ -521,24 +523,24 @@ void camctl_config_get_all(ctx_app *app)
 
     camctl_login(app);
 
-    app->caminfo.cfg_val = "";
+    app->caminfo.val_out = "";
 
-    app->caminfo.cfg_val += "{\"SystemInfo\" :"; camctl_cmd_send(app,"Config","SystemInfo");
+    app->caminfo.val_out += "{\"SystemInfo\" :"; camctl_cmd_send(app,"Config","SystemInfo");
 
-    app->caminfo.cfg_val += ",\"Alarm\" :"; camctl_cmd_send(app,"Config","Alarm");
-    app->caminfo.cfg_val += ",\"AVEnc\" :"; camctl_cmd_send(app,"Config","AVEnc");
-    app->caminfo.cfg_val += ",\"Camera\" :";camctl_cmd_send(app,"Config","Camera");
-    app->caminfo.cfg_val += ",\"Detect\" :";camctl_cmd_send(app,"Config","Detect");
-    app->caminfo.cfg_val += ",\"fVideo\" :";camctl_cmd_send(app,"Config","fVideo");
-    app->caminfo.cfg_val += ",\"General\" :";camctl_cmd_send(app,"Config","General");
-    app->caminfo.cfg_val += ",\"IPAdaptive\" :";camctl_cmd_send(app,"Config","IPAdaptive");
-    app->caminfo.cfg_val += ",\"NetWork\" :";camctl_cmd_send(app,"Config","NetWork");
-    app->caminfo.cfg_val += ",\"Storage\" :";camctl_cmd_send(app,"Config","Storage");
-    app->caminfo.cfg_val += ",\"StorageGlobal\" :";camctl_cmd_send(app,"Config","StorageGlobal");
-    app->caminfo.cfg_val += ",\"System\" :";camctl_cmd_send(app,"Config","System");
-    app->caminfo.cfg_val += ",\"Uart\" :";camctl_cmd_send(app,"Config","Uart");
+    app->caminfo.val_out += ",\"Alarm\" :"; camctl_cmd_send(app,"Config","Alarm");
+    app->caminfo.val_out += ",\"AVEnc\" :"; camctl_cmd_send(app,"Config","AVEnc");
+    app->caminfo.val_out += ",\"Camera\" :";camctl_cmd_send(app,"Config","Camera");
+    app->caminfo.val_out += ",\"Detect\" :";camctl_cmd_send(app,"Config","Detect");
+    app->caminfo.val_out += ",\"fVideo\" :";camctl_cmd_send(app,"Config","fVideo");
+    app->caminfo.val_out += ",\"General\" :";camctl_cmd_send(app,"Config","General");
+    app->caminfo.val_out += ",\"IPAdaptive\" :";camctl_cmd_send(app,"Config","IPAdaptive");
+    app->caminfo.val_out += ",\"NetWork\" :";camctl_cmd_send(app,"Config","NetWork");
+    app->caminfo.val_out += ",\"Storage\" :";camctl_cmd_send(app,"Config","Storage");
+    app->caminfo.val_out += ",\"StorageGlobal\" :";camctl_cmd_send(app,"Config","StorageGlobal");
+    app->caminfo.val_out += ",\"System\" :";camctl_cmd_send(app,"Config","System");
+    app->caminfo.val_out += ",\"Uart\" :";camctl_cmd_send(app,"Config","Uart");
 
-    app->caminfo.cfg_val += "}";
+    app->caminfo.val_out += "}";
 
     camctl_logout(app);
 
@@ -547,9 +549,9 @@ void camctl_config_get_all(ctx_app *app)
 void camctl_config_get_jstr(ctx_app *app, std::string jstr)
 {
     camctl_login(app);
-    app->caminfo.cfg_val = "{";
-    app->caminfo.cfg_val += "\""+jstr+"\" :"; camctl_cmd_send(app,"Config",jstr.c_str());
-    app->caminfo.cfg_val += "}";
+    app->caminfo.val_out = "{";
+    app->caminfo.val_out += "\""+jstr+"\" :"; camctl_cmd_send(app,"Config",jstr.c_str());
+    app->caminfo.val_out += "}";
     camctl_logout(app);
 }
 
@@ -557,30 +559,26 @@ void camctl_config_set(ctx_app *app)
 {
     ssize_t bufflen;
 
-    camctl_login(app);
-
     LOG_MSG(INF, NO_ERRNO,"msg length %d",app->caminfo.cfg_val.length());
 
     app->status_msg += "Set Config: ";
 
-    bufflen = app->caminfo.cfg_nm.length() +
-        app->caminfo.cfg_nm.length() +
-        app->caminfo.cfg_val.length() + 45;
+    bufflen = (app->caminfo.cfg_nm.length() * 2) +
+        app->caminfo.cfg_val.length() + 60;
 
     app->caminfo.cnct.msg = (char*)mymalloc(bufflen);
         snprintf(app->caminfo.cnct.msg, bufflen
-            ,"{\"Name\": \"%s\",\"%s\" : %s ,\" SessionID\" : \" %08x \" } "
+            ,"{\"Name\": \"%s\",\"%s\":%s,\"SessionID\":\"%08x\"}"
             , app->caminfo.cfg_nm.c_str()
             , app->caminfo.cfg_nm.c_str()
             , app->caminfo.cfg_val.c_str()
             , app->caminfo.cnct.sid);
+        //fprintf(stderr, "\n\n%s\n\n",app->caminfo.cnct.msg);
         camctl_socket_send(app, CONFIG_SET);
     myfree(&app->caminfo.cnct.msg);
-
     camctl_socket_read(app);
-
-    camctl_logout(app);
-
+    LOG_MSG(INF, NO_ERRNO,"Set Response %s", app->caminfo.val_out.c_str());
+    app->caminfo.val_out = "";
 }
 
 int main(int argc, char **argv)
