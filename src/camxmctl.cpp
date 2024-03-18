@@ -155,6 +155,7 @@ static int camctl_socket_open(ctx_app *app)
     app->caminfo.cnct.sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (app->caminfo.cnct.sockfd < 0)  {
         LOG_MSG(INF, NO_ERRNO,"Socket creation error");
+        app->caminfo.cnct.sockfd = 0;
         return -1;
     }
 
@@ -169,6 +170,8 @@ static int camctl_socket_open(ctx_app *app)
     retcd = inet_pton(AF_INET, app->caminfo.ip.c_str(), &cam_addr.sin_addr);
     if(retcd <=0 ) {
         LOG_MSG(INF, NO_ERRNO, "Invalid IP address");
+        close(app->caminfo.cnct.sockfd);
+        app->caminfo.cnct.sockfd = 0;
         return -1;
     }
     timeout.tv_sec = 5;
@@ -177,18 +180,24 @@ static int camctl_socket_open(ctx_app *app)
     retcd = setsockopt(app->caminfo.cnct.sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
     if (retcd < 0 ) {
         LOG_MSG(INF, NO_ERRNO, "Error setting timeout rcv %d", retcd);
+        close(app->caminfo.cnct.sockfd);
+        app->caminfo.cnct.sockfd = 0;
         return -1;
     }
 
     retcd = setsockopt(app->caminfo.cnct.sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
     if (retcd < 0 ) {
-        LOG_MSG(INF, NO_ERRNO,"\nError setting timeout snd %d", retcd);
+        LOG_MSG(INF, NO_ERRNO,"Error setting timeout snd %d", retcd);
+        close(app->caminfo.cnct.sockfd);
+        app->caminfo.cnct.sockfd = 0;
         return -1;
     }
 
     retcd = connect(app->caminfo.cnct.sockfd, (struct sockaddr *)&cam_addr, sizeof(cam_addr));
     if (retcd < 0) {
         LOG_MSG(INF, NO_ERRNO,"Connection Failed %d", retcd);
+        close(app->caminfo.cnct.sockfd);
+        app->caminfo.cnct.sockfd = 0;
         return -1;
     }
 
@@ -250,15 +259,6 @@ void camctl_socket_send(ctx_app *app, short int msgid)
             , "Failed to send all bytes: Retcd: %d Sz: %d msg: %s"
             ,bytes_send, msgsz+20, buffer);
     }
-    /*
-    int indx;
-    for (indx=0;indx<30;indx++){
-        LOG_MSG(INF, NO_ERRNO,"buffer: %04x %s",&buffer+indx,&buffer+indx);
-    }
-    LOG_MSG(INF, NO_ERRNO,"buf %s",&buffer+20);
-    LOG_MSG(INF, NO_ERRNO,"msg: %s",app->caminfo.cnct.msg);
-    free(buffer);
-    */
 }
 
 static void camctl_prepare_md5(ctx_app *app)
@@ -378,6 +378,10 @@ void camctl_login(ctx_app *app)
 
 void camctl_cmd_send(ctx_app *app, const char *cmd, const char *subcmd)
 {
+    time_t tm_t;
+    char tm_buf[30];
+    struct tm* tm_info;
+
     app->status_msg += "Command: " + std::string(cmd);
 
     if (app->caminfo.cnct.sid == 0) {
@@ -395,6 +399,24 @@ void camctl_cmd_send(ctx_app *app, const char *cmd, const char *subcmd)
             ,"{\"Name\":\"OPMachine\",\"SessionID\":\"%08x\" "
              ",\"OPMachine\":{\"Action\":\"Reboot\"} }"
             ,app->caminfo.cnct.sid);
+        camctl_socket_send(app, SYSMANAGER_REQ);
+        camctl_socket_read(app);
+    } else if (mystreq(cmd,"settime1") || mystreq(cmd,"settime2") ) {
+        tm_t = time(NULL);
+        tm_info = localtime(&tm_t);
+        strftime(tm_buf, 30, "%Y-%m-%d %H:%M:%S", tm_info);
+
+        if (mystreq(cmd,"settime1")) {
+            snprintf(app->caminfo.cnct.msg, 1024
+                ,"{\"Name\":\"OPTimeSetting\",\"SessionID\":\"%08x\" "
+                 ",\"OPTimeSetting\":\"%s\"}"
+                ,app->caminfo.cnct.sid, tm_buf);
+        } else {
+            snprintf(app->caminfo.cnct.msg, 1024
+                ,"{\"Name\":\"OPTimeSettingNoRTC\",\"SessionID\":\"%08x\" "
+                 ",\"OPTimeSettingNoRTC\":\"%s\"}"
+                ,app->caminfo.cnct.sid, tm_buf);
+        }
         camctl_socket_send(app, SYSMANAGER_REQ);
         camctl_socket_read(app);
     } else if (mystreq(cmd,"Config") ) {
@@ -573,10 +595,10 @@ void camctl_config_set(ctx_app *app)
             , app->caminfo.cfg_nm.c_str()
             , app->caminfo.cfg_val.c_str()
             , app->caminfo.cnct.sid);
-        //fprintf(stderr, "\n\n%s\n\n",app->caminfo.cnct.msg);
+        fprintf(stderr, "\n\n%s\n\n",app->caminfo.cnct.msg);
         camctl_socket_send(app, CONFIG_SET);
+        camctl_socket_read(app);
     myfree(&app->caminfo.cnct.msg);
-    camctl_socket_read(app);
     LOG_MSG(INF, NO_ERRNO,"Set Response %s", app->caminfo.val_out.c_str());
     app->caminfo.val_out = "";
 }

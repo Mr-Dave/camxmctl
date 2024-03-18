@@ -211,7 +211,11 @@
     .cmdbtn {
       width:3.5rem;
       text-align:center;
-    } 
+    }
+    .cmdbtn2 {
+      width:7rem;
+      text-align:center;
+    }  
   </style>
 </head>
 
@@ -265,7 +269,6 @@
           <input type='text' style='text-align:right;' id='ptz_dur' value='0.5'></td>
           </td>          
           <td>
-          <td>
             <input type='button' id=reboot    value='Reboot' class='cmdbtn' onclick='cmd_reboot()'>
             <input type='button' id=configget value='Config' class='cmdbtn' onclick='get_config()'>
             <br>
@@ -273,16 +276,20 @@
             <input type='button' id=groups value='Groups' class='cmdbtn' onclick='get_groups()'>
           </td>
           <td>
+            <input type='button' id=time1 value='Set Time v1' class='cmdbtn2' onclick='cmd_time(1)'>
+            <br>
+            <input type='button' id=time2 value='Set Time v2' class='cmdbtn2' onclick='cmd_time(2)'>
+            <br>
+          </td>
+          <td>
           </td>        
         </tr>
         <tr><td><br></td></tr>
         <tr><td><br></td></tr>
-        <tr>
-                    
+        <tr>                    
           <td><br></td>
           <td><br></td>          
         </tr>
-
         <tr>
           <td id="td00"></td>          
           <td id="td01"></td>
@@ -313,12 +320,11 @@
     var pStatus, pHostFull;
     var html_opt, html_tbl;
     var cnt_opt, cnt_tbl;
-    var set_reboot;
+    var fullkey;
     
     function initform() {
       pHostFull = '//' + window.location.hostname;
-      pHostFull = pHostFull + ':' + window.location.port;
-      set_reboot = false;                 
+      pHostFull = pHostFull + ':' + window.location.port;                       
     }
     function status_update(msg) {
       var html_status;
@@ -340,6 +346,30 @@
         }
       };
       formData.append('command', 'reboot');
+      formData.append('user', document.getElementById("user").value);
+      formData.append('password', document.getElementById("password").value);
+      formData.append('ip', document.getElementById("ip").value);
+      formData.append('port', document.getElementById("port").value);
+
+      request.open('POST', pHostFull);
+      request.send(formData);
+    }
+    function cmd_time(parm_val) {
+      var formData = new FormData();
+      var request = new XMLHttpRequest();
+
+      status_update ("connecting");
+      
+      request.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          status_update("ready");
+        }
+      };
+      if (parm_val == 1) {
+        formData.append('command', 'settime1');
+      } else {
+        formData.append('command', 'settime2');
+      }  
       formData.append('user', document.getElementById("user").value);
       formData.append('password', document.getElementById("password").value);
       formData.append('ip', document.getElementById("ip").value);
@@ -380,7 +410,6 @@
       xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           pData = JSON.parse(this.responseText);
-          set_reboot = false;
           load_config();
           frmdata.set('command','logout');          
           request.open('POST', pHostFull);
@@ -517,13 +546,67 @@
       }
       
     }
+    
+    function config_set_obj(jObj, indx) {
+      var tst, new_val, net_txt, new_bool;      
+
+      if ((indx > 0) &&  (indx < 9)) {
+        cfg = document.getElementById("cfgdrop"+indx).value;
+      } else {
+        cfg =""; 
+      }
+      if (cfg == "") {
+        Object.entries(jObj).forEach((entry) => {
+          const [key_nm, key_val] = entry;
+          tst = typeof key_val;
+          if (tst != "object") {      
+            //console.log("chk: "+key_nm);          
+            if (tst == "boolean") {
+              if (document.getElementById(key_nm).value == "true"){
+                new_bool = true;
+              } else {
+                new_bool = false;
+              }
+              if (new_val != key_val) {              
+                jObj[key_nm] = new_bool;
+                console.log("change: "+fullkey+" key"+key_nm+" >"+key_val+"<>"+new_bool+"<");
+              }  
+            } else if (tst == "number") {
+              new_val = Number(document.getElementById(key_nm).value);
+              if (new_val != key_val) {              
+                jObj[key_nm] = Number(new_val);
+                console.log("change: "+fullkey+" key"+key_nm+" >"+key_val+"<>"+new_val+"<");
+              }         
+            } else {
+              //console.log("var type: "+tst);
+              new_txt = document.getElementById(key_nm).value;          
+              if (new_txt != key_val) {              
+                jObj[key_nm] = new_txt;
+                console.log("change: "+fullkey+" key"+key_nm+" >"+key_val+"<>"+new_txt+"<");
+              }
+            }
+          }
+        })      
+      } else {
+        Object.entries(jObj).forEach((entry) => {
+          const [key_nm, key_val] = entry;
+          tst = typeof key_val;
+          if ((tst == "object") && (key_nm == cfg)) {
+            //console.log("obj: "+key_nm);
+            jObj = jObj[cfg];
+            config_set_obj(jObj, indx+1);          
+          }
+        })
+      }
+    }
+
     function config_set() {
       var formData = new FormData();
       var request = new XMLHttpRequest();
       var xmlhttp = new XMLHttpRequest();
-      var pStatus, key_val, fullkey, indx, dropid, tst;
-      var jSrc, jNew, new_val,cfgitm, cfg = [];
-
+      var pStatus, key_val, indx;
+      var jNew, new_val, chk_arr, cfg;
+      
       status_update ("connecting");
       
       xmlhttp.onreadystatechange = function() {
@@ -539,72 +622,32 @@
         }
       };
       
-      cfg[0] = document.getElementById("cfgdrop0").value;
-      jSrc = pData[cfg[0]][cfg[0]];
-      jNew = pData[cfg[0]][cfg[0]];
-      cfgitm = cfg[0];
-      
-      for (indx=1; indx <9; indx++) {
-        dropid = "cfgdrop"+indx;
-        cfg[indx] = document.getElementById(dropid).value;
-        if (document.getElementById(dropid).value != "") {
-          //console.log("Create jNew: "+cfg[indx]);
-          jNew = jNew[cfg[indx]];        
+      cfg = document.getElementById("cfgdrop0").value;
+      jNew = pData[cfg][cfg];
+      fullkey = cfg;
+            
+      chk_arr = -1      
+      for (indx=1; indx < 9; indx++) {      
+        cfg = document.getElementById("cfgdrop"+indx).value;          
+        if ((cfg != "") && (chk_arr == -1)) {
+          jNew = jNew[cfg];
+          fullkey = fullkey + "." + cfg;
+          if (Array.isArray(jNew)) {
+            chk_arr = indx;
+          }
         }
       }
+      config_set_obj(jNew, chk_arr+1);
+      key_val = JSON.stringify(jNew);
 
-      Object.entries(jNew).forEach((entry) => {
-        const [key_nm,key_val] = entry;
-        tst = typeof key_val;
-
-        if (tst != "object") {
-          if (tst == "boolean") {
-            if (document.getElementById(key_nm).value == "true"){
-              new_val = true;
-            } else {
-              new_val = false;
-            }
-          } else {
-            new_val = document.getElementById(key_nm).value;          
-          }
-          
-          if (new_val != key_val) {
-            //console.log("change: "+key_nm+" >"+key_val+"<>"+new_val+"<");                
-            if (document.getElementById("cfgdrop2").value == "") {          
-              jSrc[key_nm] = new_val;  
-            } else if (document.getElementById("cfgdrop3").value == "") {
-              jSrc[cfg[1]][cfg[2]][key_nm] = new_val;
-            } else if (document.getElementById("cfgdrop4").value == "") {
-              jSrc[cfg[1]][cfg[2]][cfg[3]][key_nm] = new_val;
-            } else if (document.getElementById("cfgdrop5").value == "") {
-              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][key_nm] = new_val;
-            } else if (document.getElementById("cfgdrop6").value == "") {
-              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][key_nm] = new_val;
-            } else if (document.getElementById("cfgdrop7").value == "") {
-              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][cfg[6]][key_nm] = new_val;
-            } else if (document.getElementById("cfgdrop8").value == "") {
-              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][cfg[6]][cfg[7]][key_nm] = new_val;
-            } else if (document.getElementById("cfgdrop9").value == "") {
-              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][cfg[6]][cfg[7]][cfg[8]][key_nm] = new_val;  
-            } else {
-              jSrc[cfg[1]][cfg[2]][cfg[3]][cfg[4]][cfg[5]][cfg[6]][cfg[7]][cfg[8]][cfg[9]][key_nm] = new_val;
-            }
-          }
-        }  
-      })    
-          
-      key_val = JSON.stringify(jSrc);
+      //console.log("key val: "+key_val);
      
-      if (set_reboot == true) {
-        formData.append('command', 'configsetreboot');
-      } else {
-        formData.append('command', 'configset');
-      }
+      formData.append('command', 'configset');      
       formData.append('user', document.getElementById("user").value);
       formData.append('password', document.getElementById("password").value);
       formData.append('ip', document.getElementById("ip").value);
       formData.append('port', document.getElementById("port").value);
-      formData.append('key_nm',cfgitm);
+      formData.append('key_nm', fullkey);
       formData.append('key_val',key_val);
       // console.log( key_val );
       request.open('POST', pHostFull);
@@ -717,10 +760,12 @@
       html_tbl += " name='"+key_nm+"1'";
       html_tbl += " id='" + key_nm  + "1' ";          
       html_tbl += " value='"
-      html_tbl += parseInt(key_val.substr(8,2),16)+".";
-      html_tbl += parseInt(key_val.substr(6,2),16)+".";
-      html_tbl += parseInt(key_val.substr(4,2),16)+".";
-      html_tbl += parseInt(key_val.substr(2,2),16);
+      if (key_val != ""){
+        html_tbl += parseInt(key_val.substr(8,2),16)+".";
+        html_tbl += parseInt(key_val.substr(6,2),16)+".";
+        html_tbl += parseInt(key_val.substr(4,2),16)+".";
+        html_tbl += parseInt(key_val.substr(2,2),16);
+      }   
       html_tbl += "'</td>";
       html_tbl += " <td><input type='button'";
       html_tbl += "   value='Set IP' ";
@@ -747,10 +792,8 @@
         return;
       }      
       Object.entries(jData).forEach((entry) => {
-        const [key_nm, key_val] = entry;
-        
-        tst = typeof key_val;
-
+        const [key_nm, key_val] = entry;        
+        tst = typeof key_val;        
         if (tst == "object") {
           html_opt += "<option value='"+key_nm+"'>"+key_nm+"</option>";
           cnt_opt++;        

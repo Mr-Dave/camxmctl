@@ -96,18 +96,15 @@ void webu_post_main(ctx_webui *webui)
         camctl_login(webui->app);
         camctl_config_set(webui->app);
         camctl_logout(webui->app);
-    } else if (webui->post_cmd == "configsetreboot") {
-        camctl_login(webui->app);
-        camctl_config_set(webui->app);
-        camctl_cmd_send(webui->app,"reboot","");
-        camctl_logout(webui->app);
     } else if (webui->post_cmd == "ptz") {
         camctl_login(webui->app);
         camctl_cmd_ptz(webui->app);
         camctl_logout(webui->app);
-    } else if (webui->post_cmd == "reboot") {
+    } else if ((webui->post_cmd == "reboot") ||
+        (webui->post_cmd == "settime1") ||
+        (webui->post_cmd == "settime2")) {
         camctl_login(webui->app);
-        camctl_cmd_send(webui->app,"reboot","");
+        camctl_cmd_send(webui->app, webui->post_cmd.c_str(), "");
         camctl_logout(webui->app);
     } else {
         LOG_MSG(INF, NO_ERRNO
