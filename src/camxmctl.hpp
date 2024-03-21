@@ -258,13 +258,22 @@
         std::string params_desc;        /* Description of params*/
     };
 
-    struct ctx_webu_clients {
+    struct ctx_webu_client {
         std::string                 clientip;
         bool                        authenticated;
         int                         conn_nbr;
         struct timespec             conn_time;
         int                         userid_fail_nbr;
     };
+    struct ctx_cam_client {
+        std::string     user;
+        std::string     pwd;
+        std::string     ip;
+        std::string     port;
+        std::string     token;
+        struct timespec conn_time;
+    };
+
     struct ctx_coninfo {
         char    hash[9];
         int     sockfd;
@@ -274,17 +283,20 @@
         int     seq;
         char    *msg;
     };
-    struct ctx_caminfo {
+    struct ctx_cam {
         ctx_coninfo     cnct;
         std::string     user;
         std::string     pwd;
         std::string     ip;
         std::string     port;
+        std::string     token;
         std::string     cfg_nm;
         std::string     cfg_val;
         std::string     val_out;
         std::string     ptz_action;
         std::string     ptz_duration;
+        std::string     status_msg;
+        ctx_app         *app;
     };
     struct ctx_app {
         int         argc;
@@ -297,20 +309,17 @@
         ctx_params  webcontrol_headers;        /* parameters for header */
         char        webcontrol_digest_rand[12];
         struct MHD_Daemon               *webcontrol_daemon;
-        std::list<ctx_webu_clients>      webcontrol_clients;         /* list of client ips */
-
-        ctx_caminfo caminfo;
-
-        std::string     status_msg;
+        std::list<ctx_webu_client>      webcontrol_clients;         /* list of client ips */
+        std::list<ctx_cam_client>       cam_clients;
     };
 
-    void camctl_login(ctx_app *app);
-    void camctl_logout(ctx_app *app);
-    void camctl_config_get_all(ctx_app *app);
-    void camctl_config_get_jstr(ctx_app *app, std::string jstr);
-    void camctl_config_set(ctx_app *app);
-    void camctl_config_setreboot(ctx_app *app);
-    void camctl_cmd_send(ctx_app *app, const char *cmd, const char *subcmd);
-    void camctl_cmd_ptz(ctx_app *app);
+    void camctl_login(ctx_cam *cam);
+    void camctl_logout(ctx_cam *cam);
+    void camctl_config_get_all(ctx_cam *cam, const char *cmd);
+    void camctl_config_get_jstr(ctx_cam *cam, std::string jstr);
+    void camctl_config_set(ctx_cam *cam);
+    void camctl_config_setreboot(ctx_cam *cam);
+    void camctl_cmd_send(ctx_cam *cam, const char *cmd, const char *subcmd);
+    void camctl_cmd_ptz(ctx_cam *cam);
 
 #endif

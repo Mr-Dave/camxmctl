@@ -37,28 +37,31 @@ void webu_post_cmdindx(ctx_webui *webui)
             webui->post_cmd = keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "ip")) {
-            webui->app->caminfo.ip =keyval;
+            webui->cam->ip =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "port")) {
-            webui->app->caminfo.port =keyval;
+            webui->cam->port =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "user")) {
-            webui->app->caminfo.user = keyval;
+            webui->cam->user = keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "password")) {
-            webui->app->caminfo.pwd = keyval;
+            webui->cam->pwd = keyval;
+        }
+        if (mystreq(webui->post_info[indx].key_nm, "token")) {
+            webui->cam->token = keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "key_nm")) {
-            webui->app->caminfo.cfg_nm =keyval;
+            webui->cam->cfg_nm =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "key_val")) {
-            webui->app->caminfo.cfg_val =keyval;
+            webui->cam->cfg_val =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "ptz_action")) {
-            webui->app->caminfo.ptz_action =keyval;
+            webui->cam->ptz_action =keyval;
         }
         if (mystreq(webui->post_info[indx].key_nm, "ptz_duration")) {
-            webui->app->caminfo.ptz_duration = keyval;
+            webui->cam->ptz_duration = keyval;
         }
 
         LOG_MSG(DBG, NO_ERRNO ,"key: %s  value: %s "
@@ -66,7 +69,7 @@ void webu_post_cmdindx(ctx_webui *webui)
             , webui->post_info[indx].key_val
         );
 
-        //fprintf(stderr, "\n\n%s\n\n",webui->app->caminfo.cfg_val.c_str());
+        //fprintf(stderr, "\n\n%s\n\n",webui->cam->cfg_val.c_str());
     }
 
     if (webui->post_cmd == "") {
@@ -86,26 +89,26 @@ void webu_post_main(ctx_webui *webui)
         return;
     }
 
-    webui->app->status_msg = "";
+    webui->cam->status_msg = "";
 
     if (webui->post_cmd == "login") {
-        camctl_login(webui->app);
+        camctl_login(webui->cam);
+        camctl_logout(webui->cam);
     } else if (webui->post_cmd == "logout") {
-        camctl_logout(webui->app);
+        camctl_logout(webui->cam);
     } else if (webui->post_cmd == "configset") {
-        camctl_login(webui->app);
-        camctl_config_set(webui->app);
-        camctl_logout(webui->app);
+        camctl_login(webui->cam);
+        camctl_config_set(webui->cam);
+        camctl_logout(webui->cam);
     } else if (webui->post_cmd == "ptz") {
-        camctl_login(webui->app);
-        camctl_cmd_ptz(webui->app);
-        camctl_logout(webui->app);
+        camctl_login(webui->cam);
+        camctl_cmd_ptz(webui->cam);
+        camctl_logout(webui->cam);
     } else if ((webui->post_cmd == "reboot") ||
-        (webui->post_cmd == "settime1") ||
-        (webui->post_cmd == "settime2")) {
-        camctl_login(webui->app);
-        camctl_cmd_send(webui->app, webui->post_cmd.c_str(), "");
-        camctl_logout(webui->app);
+        (webui->post_cmd == "settime")) {
+        camctl_login(webui->cam);
+        camctl_cmd_send(webui->cam, webui->post_cmd.c_str(), "");
+        camctl_logout(webui->cam);
     } else {
         LOG_MSG(INF, NO_ERRNO
             , "Invalid action requested: command: >%s< "
@@ -188,6 +191,11 @@ static void webu_context_init(ctx_app *app, ctx_webui *webui)
     webui->cnct_method   = WEBUI_METHOD_GET;
     webui->post_sz       = 0;
     webui->post_info     = NULL;
+    webui->uri_parms.params_count = 0;
+    webui->uri_parms.params_desc = "Get URI";
+    webui->uri_parms.update_params = false;
+    webui->cam           = new ctx_cam;
+    webui->cam->app      = app;
 
     return;
 }
@@ -206,20 +214,62 @@ static void webu_context_free(ctx_webui *webui)
         myfree(&webui->post_info[indx].key_val);
     }
     myfree(&webui->post_info);
-
+    delete webui->cam;
     delete webui;
 }
 
 /* Edit the parameters specified in the url sent */
-static void webu_parms_edit(ctx_webui *webui)
+static void webu_parms_edit(ctx_webui *webui, std::string  &pcmd)
 {
-    LOG_MSG(DBG, NO_ERRNO
-        , "cmd0: >%s< cmd1: >%s< cmd2: >%s< cmd3: >%s<"
-        , webui->uri_cmd0.c_str(), webui->uri_cmd1.c_str()
-        , webui->uri_cmd2.c_str(), webui->uri_cmd3.c_str());
+    size_t parm_loc;
+    std::string parm_full;
+    ctx_params_item newitm;
+
+    if (pcmd == "") {
+        return;
+    }
+
+    parm_loc = pcmd.find("?",0);
+    if (parm_loc != std::string::npos) {
+        parm_full = pcmd.substr(parm_loc+1);
+        pcmd = pcmd.substr(0,parm_loc);
+        while (parm_full != "") {
+            newitm.param_name = "";
+            newitm.param_value = "";
+            parm_loc = parm_full.find("&",0);
+            if (parm_loc == std::string::npos) {
+                newitm.param_name = parm_full;
+                parm_full = "";
+            } else {
+                newitm.param_name = parm_full.substr(0, parm_loc);
+                if ((parm_loc+1) > parm_full.length()) {
+                    parm_full = "";
+                } else {
+                    parm_full = parm_full.substr(parm_loc+1);
+                }
+            }
+            parm_loc = newitm.param_name.find("=",0);
+            if (parm_loc == std::string::npos) {
+                newitm.param_value = "";
+            } else {
+                if ((parm_loc+1) > newitm.param_name.length()) {
+                    newitm.param_value = "";
+                } else {
+                    newitm.param_value = newitm.param_name.substr(parm_loc+1);
+                }
+                newitm.param_name = newitm.param_name.substr(0,parm_loc);
+            }
+            webui->uri_parms.params_count++;
+            webui->uri_parms.params_array.push_back(newitm);
+            LOG_MSG(DBG, NO_ERRNO
+                , "cmd: >%s< parm_name: >%s< parm_value: >%s<"
+                , pcmd.c_str()
+                , newitm.param_name.c_str()
+                , newitm.param_value.c_str());
+        }
+    }
 
 }
-
 
 /* Extract the cmds from the url */
 static int webu_parseurl(ctx_webui *webui)
@@ -227,7 +277,7 @@ static int webu_parseurl(ctx_webui *webui)
     char *tmpurl;
     size_t  pos_slash1, pos_slash2, baselen;
 
-    /* Example:  /chid/cmd1/cmd2/cmd3   */
+    /* Example:  /cmd0/cmd1/cmd2/cmd3   */
     webui->uri_cmd0 = "";
     webui->uri_cmd1 = "";
     webui->uri_cmd2 = "";
@@ -381,8 +431,8 @@ static void webu_hostname(ctx_webui *webui)
 static void webu_failauth_log(ctx_webui *webui, bool userid_fail)
 {
     timespec            tm_cnct;
-    ctx_webu_clients    clients;
-    std::list<ctx_webu_clients>::iterator   it;
+    ctx_webu_client    clients;
+    std::list<ctx_webu_client>::iterator   it;
 
     LOG_MSG(ALR, NO_ERRNO
             ,"Failed authentication from %s", webui->clientip.c_str());
@@ -423,8 +473,8 @@ static void webu_failauth_log(ctx_webui *webui, bool userid_fail)
 static void webu_client_connect(ctx_webui *webui)
 {
     timespec  tm_cnct;
-    ctx_webu_clients  clients;
-    std::list<ctx_webu_clients>::iterator   it;
+    ctx_webu_client  clients;
+    std::list<ctx_webu_client>::iterator   it;
 
     clock_gettime(CLOCK_MONOTONIC, &tm_cnct);
 
@@ -475,7 +525,7 @@ static void webu_client_connect(ctx_webui *webui)
 static mhdrslt webu_failauth_check(ctx_webui *webui)
 {
     timespec                                tm_cnct;
-    std::list<ctx_webu_clients>::iterator   it;
+    std::list<ctx_webu_client>::iterator   it;
     std::string                             tmp;
 
     if (webui->app->webcontrol_clients.size() == 0) {
@@ -672,7 +722,7 @@ static mhdrslt webu_mhd_auth(ctx_webui *webui)
     rand2 = (unsigned int)(42000000.0 * rand() / (RAND_MAX + 1.0));
     snprintf(webui->auth_opaque, WEBUI_LEN_PARM, "%08x%08x", rand1, rand2);
 
-    snprintf(webui->auth_realm, WEBUI_LEN_PARM, "%s","Restream");
+    snprintf(webui->auth_realm, WEBUI_LEN_PARM, "%s","camxmctl");
 
     if (webui->app->conf->webcontrol_authentication == "") {
         webui->authenticated = true;
@@ -975,7 +1025,16 @@ static void *webu_mhd_init(void *cls, const char *uri, struct MHD_Connection *co
         webui->url = "";
     }
 
-    webu_parms_edit(webui);
+    webu_parms_edit(webui,webui->uri_cmd0);
+    webu_parms_edit(webui,webui->uri_cmd1);
+    webu_parms_edit(webui,webui->uri_cmd2);
+    webu_parms_edit(webui,webui->uri_cmd3);
+
+    LOG_MSG(DBG, NO_ERRNO
+        , "cmd0: >%s< cmd1: >%s< cmd2: >%s< cmd3: >%s<"
+        , webui->uri_cmd0.c_str(), webui->uri_cmd1.c_str()
+        , webui->uri_cmd2.c_str(), webui->uri_cmd3.c_str());
+
 
     return webui;
 }

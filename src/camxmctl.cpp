@@ -146,58 +146,58 @@ static void signal_setup()
     }
 }
 
-static int camctl_socket_open(ctx_app *app)
+static int camctl_socket_open(ctx_cam *cam)
 {
     int retcd;
     struct sockaddr_in cam_addr;
     struct timeval timeout;
 
-    app->caminfo.cnct.sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (app->caminfo.cnct.sockfd < 0)  {
+    cam->cnct.sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (cam->cnct.sockfd < 0)  {
         LOG_MSG(INF, NO_ERRNO,"Socket creation error");
-        app->caminfo.cnct.sockfd = 0;
+        cam->cnct.sockfd = 0;
         return -1;
     }
 
     LOG_MSG(INF, NO_ERRNO, "IP %s Port val %d Port string %s"
-        , app->caminfo.ip.c_str(), atoi(app->caminfo.port.c_str())
-        ,app->caminfo.port.c_str());
+        ,cam->ip.c_str(), atoi(cam->port.c_str())
+        ,cam->port.c_str());
 
     cam_addr.sin_family = AF_INET;
-    cam_addr.sin_port = htons(atoi(app->caminfo.port.c_str()));
+    cam_addr.sin_port = htons(atoi(cam->port.c_str()));
 
     // Convert IPv4 and IPv6 addresses from text to binary form
-    retcd = inet_pton(AF_INET, app->caminfo.ip.c_str(), &cam_addr.sin_addr);
+    retcd = inet_pton(AF_INET, cam->ip.c_str(), &cam_addr.sin_addr);
     if(retcd <=0 ) {
         LOG_MSG(INF, NO_ERRNO, "Invalid IP address");
-        close(app->caminfo.cnct.sockfd);
-        app->caminfo.cnct.sockfd = 0;
+        close(cam->cnct.sockfd);
+        cam->cnct.sockfd = 0;
         return -1;
     }
     timeout.tv_sec = 5;
     timeout.tv_usec = 0;
 
-    retcd = setsockopt(app->caminfo.cnct.sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
+    retcd = setsockopt(cam->cnct.sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout));
     if (retcd < 0 ) {
         LOG_MSG(INF, NO_ERRNO, "Error setting timeout rcv %d", retcd);
-        close(app->caminfo.cnct.sockfd);
-        app->caminfo.cnct.sockfd = 0;
+        close(cam->cnct.sockfd);
+        cam->cnct.sockfd = 0;
         return -1;
     }
 
-    retcd = setsockopt(app->caminfo.cnct.sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
+    retcd = setsockopt(cam->cnct.sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout));
     if (retcd < 0 ) {
         LOG_MSG(INF, NO_ERRNO,"Error setting timeout snd %d", retcd);
-        close(app->caminfo.cnct.sockfd);
-        app->caminfo.cnct.sockfd = 0;
+        close(cam->cnct.sockfd);
+        cam->cnct.sockfd = 0;
         return -1;
     }
 
-    retcd = connect(app->caminfo.cnct.sockfd, (struct sockaddr *)&cam_addr, sizeof(cam_addr));
+    retcd = connect(cam->cnct.sockfd, (struct sockaddr *)&cam_addr, sizeof(cam_addr));
     if (retcd < 0) {
         LOG_MSG(INF, NO_ERRNO,"Connection Failed %d", retcd);
-        close(app->caminfo.cnct.sockfd);
-        app->caminfo.cnct.sockfd = 0;
+        close(cam->cnct.sockfd);
+        cam->cnct.sockfd = 0;
         return -1;
     }
 
@@ -206,54 +206,54 @@ static int camctl_socket_open(ctx_app *app)
     return 0;
 }
 
-void camctl_socket_read(ctx_app *app)
+void camctl_socket_read(ctx_cam *cam)
 {
     struct ctx_msgresp  resp;
     char buffer_out[1024];
     ssize_t bytes_read, nbytes;
 
     memset(buffer_out, 0, 1024);
-    bytes_read = read(app->caminfo.cnct.sockfd, buffer_out, 1024);
+    bytes_read = read(cam->cnct.sockfd, buffer_out, 1024);
     if (bytes_read >= 20) {
         memcpy(&resp, buffer_out, sizeof(struct ctx_msgresp));
-        app->caminfo.cnct.sid = resp.msg_sid;
-        app->caminfo.cnct.seq = resp.msg_seq;
-        app->caminfo.val_out += std::string(buffer_out + 20).substr(0, bytes_read - 20);
+        cam->cnct.sid = resp.msg_sid;
+        cam->cnct.seq = resp.msg_seq;
+        cam->val_out += std::string(buffer_out + 20).substr(0, bytes_read - 20);
         nbytes = resp.msg_size + 20 - bytes_read;
         if (nbytes < 0) {
            nbytes = 0;
         }
         while (nbytes > 0) {
             memset(buffer_out, 0, 1024);
-            bytes_read = read(app->caminfo.cnct.sockfd, buffer_out, 1024);
-            app->caminfo.val_out += std::string(buffer_out).substr(0, bytes_read);
+            bytes_read = read(cam->cnct.sockfd, buffer_out, 1024);
+            cam->val_out += std::string(buffer_out).substr(0, bytes_read);
             nbytes = nbytes - bytes_read;
         }
-        app->status_msg += "Success. ";
+        cam->status_msg += "Success. ";
     } else {
         LOG_MSG(INF, NO_ERRNO
             ,"Read from socket failed to get 20 bytes: %ld"
             , bytes_read);
-        app->status_msg += "Failed. ";
+        cam->status_msg += "Failed. ";
     }
 }
 
-void camctl_socket_send(ctx_app *app, short int msgid)
+void camctl_socket_send(ctx_cam *cam, short int msgid)
 {
     ssize_t bytes_send;
     int msgsz;
     char *buffer;
 
-    msgsz = strlen(app->caminfo.cnct.msg)+1;
+    msgsz = strlen(cam->cnct.msg)+1;
     buffer = (char*)mymalloc(msgsz+20);
 
     memcpy(buffer, "\xff\x00\x00\x00", 4);
-    memcpy(buffer + 4, &app->caminfo.cnct.sid, 4);
+    memcpy(buffer + 4, &cam->cnct.sid, 4);
     memcpy(buffer + 8,"\x00\x00\x00\x00", 4);
     memcpy(buffer + 14, &msgid, 2);
     memcpy(buffer + 16, &msgsz, 4);
-    memcpy(buffer + 20, app->caminfo.cnct.msg, msgsz);
-    bytes_send = send(app->caminfo.cnct.sockfd, buffer, msgsz+20, 0);
+    memcpy(buffer + 20, cam->cnct.msg, msgsz);
+    bytes_send = send(cam->cnct.sockfd, buffer, msgsz+20, 0);
     if (bytes_send != (msgsz+20)) {
         LOG_MSG(ERR, NO_ERRNO
             , "Failed to send all bytes: Retcd: %d Sz: %d msg: %s"
@@ -261,17 +261,17 @@ void camctl_socket_send(ctx_app *app, short int msgid)
     }
 }
 
-static void camctl_prepare_md5(ctx_app *app)
+static void camctl_prepare_md5(ctx_cam *cam)
 {
     MD5_CTX mdctx;
     int indx;
     unsigned char digest[16];
     char onebyte;
 
-    memset(app->caminfo.cnct.hash, 0, sizeof(app->caminfo.cnct.hash));
+    memset(cam->cnct.hash, 0, sizeof(cam->cnct.hash));
 
     MD5_Init(&mdctx);
-    MD5_Update(&mdctx, app->caminfo.pwd.c_str(), app->caminfo.pwd.length());
+    MD5_Update(&mdctx, cam->pwd.c_str(), cam->pwd.length());
     MD5_Final(digest, &mdctx);
 
     for (indx = 0 ; indx < 8 ; indx++ ) {
@@ -283,171 +283,198 @@ static void camctl_prepare_md5(ctx_app *app)
         } else {
             onebyte += 61;
         }
-        app->caminfo.cnct.hash[indx] = onebyte;
+        cam->cnct.hash[indx] = onebyte;
     }
 
 }
 
-void camctl_logout(ctx_app *app)
+void camctl_logout(ctx_cam *cam)
 {
-    if (app->caminfo.cnct.sid == 0) {
+    if (cam->cnct.sid == 0) {
         return;
     }
 
-    app->status_msg += " Logout:";
+    cam->status_msg += " Logout:";
 
-    camctl_prepare_md5(app);
+    camctl_prepare_md5(cam);
 
-    app->caminfo.cnct.msg = (char*)mymalloc(1024);
-        snprintf(app->caminfo.cnct.msg, 1024
+    cam->cnct.msg = (char*)mymalloc(1024);
+        snprintf(cam->cnct.msg, 1024
             ,"{\"LoginType\"   : \"camxmctl\" "
             ",\"PassWord\"    : \"%s\" "
             ",\"UserName\"    : \"%s\" "
             ",\"EncryptType\" : \"MD5\" }"
-            , app->caminfo.cnct.hash
-            , app->caminfo.user.c_str());
-        camctl_socket_send(app, LOGOUT_REQ);
-    myfree(&app->caminfo.cnct.msg);
-    close(app->caminfo.cnct.sockfd);
+            , cam->cnct.hash
+            , cam->user.c_str());
+        camctl_socket_send(cam, LOGOUT_REQ);
+    myfree(&cam->cnct.msg);
+    close(cam->cnct.sockfd);
 
-    app->caminfo.cnct.sockfd = 0;
-    app->caminfo.cnct.sid = 0;
-    app->caminfo.cnct.seq = 0;
+    cam->cnct.sockfd = 0;
+    cam->cnct.sid = 0;
+    cam->cnct.seq = 0;
 
     LOG_MSG(INF, NO_ERRNO,"logged out");
-    app->status_msg += "Success";
+    cam->status_msg += "Success";
 
 }
 
-void camctl_login_default(ctx_app *app)
+void camctl_login_token(ctx_cam *cam)
 {
-    if (app->caminfo.ip == "") {
-        app->caminfo.ip = "10.0.0.67";
-        app->caminfo.user = "admin";
-        app->caminfo.port = "34567";
+    timespec        tm_cnct;
+    ctx_cam_client  clients;
+    std::list<ctx_cam_client>::iterator   it;
+    bool    isnew;
+
+    clock_gettime(CLOCK_MONOTONIC, &tm_cnct);
+
+    isnew = true;
+    it = cam->app->cam_clients.begin();
+    while (it != cam->app->cam_clients.end()) {
+        if (it->token == cam->token) {
+            isnew = false;
+            it->conn_time.tv_sec =tm_cnct.tv_sec;
+            cam->ip   = it->ip;
+            cam->port = it->port;
+            cam->user = it->user;
+            cam->pwd  = it->pwd;
+        }
+        if (tm_cnct.tv_sec > (it->conn_time.tv_sec + 120)) {
+            it = cam->app->cam_clients.erase(it);
+        } else {
+            it++;
+        }
+    }
+    if ((isnew == true) && (cam->ip != "")) {
+        clients.conn_time  = tm_cnct;
+        clients.ip    = cam->ip;
+        clients.port  = cam->port;
+        clients.user  = cam->user;
+        clients.pwd   = cam->pwd;
+        clients.token = cam->token;
+        cam->app->cam_clients.push_back(clients);
     }
 
 }
 
-void camctl_login(ctx_app *app)
+void camctl_login(ctx_cam *cam)
 {
     int retcd;
 
-    if (app->caminfo.cnct.sid != 0) {
+    if (cam->cnct.sid != 0) {
         return;
     }
 
-    app->status_msg += " Login:";
+    cam->status_msg += " Login:";
 
-    camctl_login_default(app);
+    camctl_login_token(cam);
 
-    retcd = camctl_socket_open(app);
+    retcd = camctl_socket_open(cam);
     if (retcd != 0) {
-        app->status_msg += " Failed";
-        app->caminfo.cnct.sid = 0;
-        app->caminfo.cnct.seq = 0;
+        cam->status_msg += " Failed";
+        cam->cnct.sid = 0;
+        cam->cnct.seq = 0;
         LOG_MSG(INF, NO_ERRNO,"Login failed");
         return;
     }
 
-    camctl_prepare_md5(app);
+    camctl_prepare_md5(cam);
 
-    app->caminfo.cnct.msg = (char*)mymalloc(1024);
-        snprintf(app->caminfo.cnct.msg, 1024
+    cam->cnct.msg = (char*)mymalloc(1024);
+        snprintf(cam->cnct.msg, 1024
             ,"{\"LoginType\":\"camxmctl\" "
             ",\"PassWord\":\"%s\" "
             ",\"UserName\":\"%s\" "
             ",\"EncryptType\":\"MD5\" }"
-            , app->caminfo.cnct.hash
-            , app->caminfo.user.c_str());
-        camctl_socket_send(app, LOGIN_REQ2);
-    myfree(&app->caminfo.cnct.msg);
+            , cam->cnct.hash
+            , cam->user.c_str());
+        camctl_socket_send(cam, LOGIN_REQ2);
+    myfree(&cam->cnct.msg);
 
-    camctl_socket_read(app);
+    camctl_socket_read(cam);
 
-    if (app->caminfo.cnct.sid == 0) {
+    if (cam->cnct.sid == 0) {
         LOG_MSG(INF, NO_ERRNO,"Login failed.");
-        app->status_msg += "Failed.";
+        cam->status_msg += "Failed.";
     } else {
         LOG_MSG(INF, NO_ERRNO,"Logged in");
-        app->status_msg += "Success.";
+        cam->status_msg += "Success.";
     }
-    LOG_MSG(DBG, NO_ERRNO,"Login response:%s", app->caminfo.val_out.c_str());
-    app->caminfo.val_out = "";
+    LOG_MSG(DBG, NO_ERRNO,"Login response:%s", cam->val_out.c_str());
+    cam->val_out = "";
 }
 
-void camctl_cmd_send(ctx_app *app, const char *cmd, const char *subcmd)
+void camctl_cmd_send(ctx_cam *cam, const char *cmd, const char *subcmd)
 {
     time_t tm_t;
     char tm_buf[30];
     struct tm* tm_info;
 
-    app->status_msg += "Command: " + std::string(cmd);
+    cam->status_msg += "Command: " + std::string(cmd);
 
-    if (app->caminfo.cnct.sid == 0) {
-        camctl_login(app);
-        if (app->caminfo.cnct.sid == 0) {
+    if (cam->cnct.sid == 0) {
+        camctl_login(cam);
+        if (cam->cnct.sid == 0) {
             LOG_MSG(INF, NO_ERRNO,"Login failed");
-            app->status_msg += " Failed";
+            cam->status_msg += " Failed";
             return;
        }
     }
 
-    app->caminfo.cnct.msg = (char*)mymalloc(1024);
+    cam->cnct.msg = (char*)mymalloc(1024);
     if (mystreq(cmd,"reboot") ) {
-        snprintf(app->caminfo.cnct.msg, 1024
+        snprintf(cam->cnct.msg, 1024
             ,"{\"Name\":\"OPMachine\",\"SessionID\":\"%08x\" "
              ",\"OPMachine\":{\"Action\":\"Reboot\"} }"
-            ,app->caminfo.cnct.sid);
-        camctl_socket_send(app, SYSMANAGER_REQ);
-        camctl_socket_read(app);
-    } else if (mystreq(cmd,"settime1") || mystreq(cmd,"settime2") ) {
+            ,cam->cnct.sid);
+        camctl_socket_send(cam, SYSMANAGER_REQ);
+        LOG_MSG(INF, NO_ERRNO,"Sent reboot request");
+        camctl_socket_read(cam);
+    } else if (mystreq(cmd,"settime")) {
         tm_t = time(NULL);
         tm_info = localtime(&tm_t);
         strftime(tm_buf, 30, "%Y-%m-%d %H:%M:%S", tm_info);
-
-        if (mystreq(cmd,"settime1")) {
-            snprintf(app->caminfo.cnct.msg, 1024
-                ,"{\"Name\":\"OPTimeSetting\",\"SessionID\":\"%08x\" "
-                 ",\"OPTimeSetting\":\"%s\"}"
-                ,app->caminfo.cnct.sid, tm_buf);
-        } else {
-            snprintf(app->caminfo.cnct.msg, 1024
-                ,"{\"Name\":\"OPTimeSettingNoRTC\",\"SessionID\":\"%08x\" "
-                 ",\"OPTimeSettingNoRTC\":\"%s\"}"
-                ,app->caminfo.cnct.sid, tm_buf);
-        }
-        camctl_socket_send(app, SYSMANAGER_REQ);
-        camctl_socket_read(app);
-    } else if (mystreq(cmd,"Config") ) {
-        snprintf(app->caminfo.cnct.msg, 1024
+        snprintf(cam->cnct.msg, 1024
+            ,"{\"Name\":\"OPTimeSetting\",\"SessionID\":\"%08x\" "
+            ",\"OPTimeSetting\":\"%s\"}"
+            ,cam->cnct.sid, tm_buf);
+        camctl_socket_send(cam, SYSMANAGER_REQ);
+        LOG_MSG(INF, NO_ERRNO,"Sent time change request");
+        camctl_socket_read(cam);
+    } else if (mystreq(cmd,"config") || mystreq(cmd,"default") ) {
+        snprintf(cam->cnct.msg, 1024
             ,"{\"Name\": \"%s\",\" SessionID\":\"%08x\" } "
-            ,subcmd, app->caminfo.cnct.sid);
+            ,subcmd, cam->cnct.sid);
         if (mystreq(subcmd,"SystemInfo") ) {
-            camctl_socket_send(app, SYSINFO_REQ);
-        } else {
-            camctl_socket_send(app, CONFIG_GET);
+            camctl_socket_send(cam, SYSINFO_REQ);
+            LOG_MSG(INF, NO_ERRNO,"Sent SystemInfo request %s",subcmd);
+        } else if (mystreq(cmd,"config")) {
+            camctl_socket_send(cam, CONFIG_GET);
+            LOG_MSG(INF, NO_ERRNO,"Sent configuration request  %s",subcmd);
+        } else if (mystreq(cmd,"default")) {
+            camctl_socket_send(cam, DEFAULT_CONFIG_GET);
+            LOG_MSG(INF, NO_ERRNO,"Sent defaults request %s",subcmd);
         }
-        camctl_socket_read(app);
+        camctl_socket_read(cam);
     }
-    myfree(&app->caminfo.cnct.msg);
+    myfree(&cam->cnct.msg);
 
 }
 
-void camctl_cmd_ptz(ctx_app *app)
+void camctl_cmd_ptz(ctx_cam *cam)
 {
     std::string parms;
     struct timespec slp;
 
-    if (app->caminfo.cnct.sid == 0) {
-        camctl_login(app);
-        if (app->caminfo.cnct.sid == 0) {
-            app->status_msg += " Failed";
+    if (cam->cnct.sid == 0) {
+        camctl_login(cam);
+        if (cam->cnct.sid == 0) {
+            cam->status_msg += " Failed";
             return;
        }
     }
 
-    app->status_msg += "Command: PTZ";
+    cam->status_msg += "Command: PTZ";
 
     parms =  ",\"Parameter\":";
     parms += "{\"MenuOpts\":\"Enter\"";
@@ -456,33 +483,33 @@ void camctl_cmd_ptz(ctx_app *app)
     parms += ",\"AUX\":{\"Status\":\"On\",\"Number\":0}";
     parms += ",\"POINT\":{\"left\":0,\"right\":0,\"top\":0,\"bottom\":0}";
 
-    app->caminfo.cnct.msg = (char*)mymalloc(1024);
+    cam->cnct.msg = (char*)mymalloc(1024);
 
-    snprintf(app->caminfo.cnct.msg, 1024
+    snprintf(cam->cnct.msg, 1024
         ,"{\"Name\":\"OPPTZControl\",\"SessionID\":\"%08x\""
         ",\"OPPTZControl\":{\"Command\":\"%s\"%s"
         ",\"Preset\":65535}}}"
-        , app->caminfo.cnct.sid
-        , app->caminfo.ptz_action.c_str()
+        , cam->cnct.sid
+        , cam->ptz_action.c_str()
         , parms.c_str());
-    camctl_socket_send(app, PTZ_REQ);
-    camctl_socket_read(app);
+    camctl_socket_send(cam, PTZ_REQ);
+    camctl_socket_read(cam);
 
-    slp.tv_sec = atoi(app->caminfo.ptz_duration.c_str());
-    slp.tv_nsec= (atof(app->caminfo.ptz_duration.c_str())-slp.tv_sec)*1000000000L;
+    slp.tv_sec = atoi(cam->ptz_duration.c_str());
+    slp.tv_nsec= (atof(cam->ptz_duration.c_str())-slp.tv_sec)*1000000000L;
     SLEEP(slp.tv_sec, slp.tv_nsec);
 
-    snprintf(app->caminfo.cnct.msg, 1024
+    snprintf(cam->cnct.msg, 1024
         ,"{\"Name\":\"OPPTZControl\",\"SessionID\":\"%08x\""
         ",\"OPPTZControl\":{\"Command\":\"%s\"%s"
         ",\"Preset\":-1}}}"
-        , app->caminfo.cnct.sid
-        , app->caminfo.ptz_action.c_str()
+        , cam->cnct.sid
+        , cam->ptz_action.c_str()
         , parms.c_str());
-    camctl_socket_send(app, PTZ_REQ);
-    camctl_socket_read(app);
+    camctl_socket_send(cam, PTZ_REQ);
+    camctl_socket_read(cam);
 
-    myfree(&app->caminfo.cnct.msg);
+    myfree(&cam->cnct.msg);
 
     /* Sample
     { "SessionID":"0x00000002"
@@ -526,16 +553,16 @@ void camctl_cmd_ptz(ctx_app *app)
 
 }
 
-void camctl_config_get_all(ctx_app *app)
+void camctl_config_get_all(ctx_cam *cam, const char *cmd)
 {
-    if (app->caminfo.cnct.sid == 0) {
+    if (cam->cnct.sid == 0) {
         std::ifstream ifs;
         std::string line;
-        app->caminfo.val_out  = "";
+        cam->val_out  = "";
         ifs.open("/home/dave/source/camxmctl/all.json");
             while (std::getline(ifs, line)) {
                 mytrim(line);
-                app->caminfo.val_out += line;
+                cam->val_out += line;
             }
         ifs.close();
         LOG_MSG(INF, NO_ERRNO,"Using the test file");
@@ -543,64 +570,64 @@ void camctl_config_get_all(ctx_app *app)
         return;
     }
 
-    camctl_login(app);
+    camctl_login(cam);
 
-    app->caminfo.val_out = "";
+    cam->val_out = "";
 
-    app->caminfo.val_out += "{\"SystemInfo\" :"; camctl_cmd_send(app,"Config","SystemInfo");
+    cam->val_out += "{\"SystemInfo\" :"; camctl_cmd_send(cam, cmd,"SystemInfo");
 
-    app->caminfo.val_out += ",\"Alarm\" :"; camctl_cmd_send(app,"Config","Alarm");
-    app->caminfo.val_out += ",\"AVEnc\" :"; camctl_cmd_send(app,"Config","AVEnc");
-    app->caminfo.val_out += ",\"Camera\" :";camctl_cmd_send(app,"Config","Camera");
-    app->caminfo.val_out += ",\"Detect\" :";camctl_cmd_send(app,"Config","Detect");
-    app->caminfo.val_out += ",\"fVideo\" :";camctl_cmd_send(app,"Config","fVideo");
-    app->caminfo.val_out += ",\"General\" :";camctl_cmd_send(app,"Config","General");
-    app->caminfo.val_out += ",\"IPAdaptive\" :";camctl_cmd_send(app,"Config","IPAdaptive");
-    app->caminfo.val_out += ",\"NetWork\" :";camctl_cmd_send(app,"Config","NetWork");
-    app->caminfo.val_out += ",\"Storage\" :";camctl_cmd_send(app,"Config","Storage");
-    app->caminfo.val_out += ",\"StorageGlobal\" :";camctl_cmd_send(app,"Config","StorageGlobal");
-    app->caminfo.val_out += ",\"System\" :";camctl_cmd_send(app,"Config","System");
-    app->caminfo.val_out += ",\"Uart\" :";camctl_cmd_send(app,"Config","Uart");
+    cam->val_out += ",\"Alarm\" :"; camctl_cmd_send(cam,cmd,"Alarm");
+    cam->val_out += ",\"AVEnc\" :"; camctl_cmd_send(cam,cmd,"AVEnc");
+    cam->val_out += ",\"Camera\" :";camctl_cmd_send(cam,cmd,"Camera");
+    cam->val_out += ",\"Detect\" :";camctl_cmd_send(cam,cmd,"Detect");
+    cam->val_out += ",\"fVideo\" :";camctl_cmd_send(cam,cmd,"fVideo");
+    cam->val_out += ",\"General\" :";camctl_cmd_send(cam,cmd,"General");
+    cam->val_out += ",\"IPAdaptive\" :";camctl_cmd_send(cam,cmd,"IPAdaptive");
+    cam->val_out += ",\"NetWork\" :";camctl_cmd_send(cam,cmd,"NetWork");
+    cam->val_out += ",\"Storage\" :";camctl_cmd_send(cam,cmd,"Storage");
+    cam->val_out += ",\"StorageGlobal\" :";camctl_cmd_send(cam,cmd,"StorageGlobal");
+    cam->val_out += ",\"System\" :";camctl_cmd_send(cam,cmd,"System");
+    cam->val_out += ",\"Uart\" :";camctl_cmd_send(cam,cmd,"Uart");
 
-    app->caminfo.val_out += "}";
+    cam->val_out += "}";
 
-    camctl_logout(app);
+    camctl_logout(cam);
 
 }
 
-void camctl_config_get_jstr(ctx_app *app, std::string jstr)
+void camctl_config_get_jstr(ctx_cam *cam, std::string jstr)
 {
-    camctl_login(app);
-    app->caminfo.val_out = "{";
-    app->caminfo.val_out += "\""+jstr+"\" :"; camctl_cmd_send(app,"Config",jstr.c_str());
-    app->caminfo.val_out += "}";
-    camctl_logout(app);
+    camctl_login(cam);
+    cam->val_out = "{";
+    cam->val_out += "\""+jstr+"\" :"; camctl_cmd_send(cam,"Config",jstr.c_str());
+    cam->val_out += "}";
+    camctl_logout(cam);
 }
 
-void camctl_config_set(ctx_app *app)
+void camctl_config_set(ctx_cam *cam)
 {
     ssize_t bufflen;
 
-    LOG_MSG(INF, NO_ERRNO,"msg length %d",app->caminfo.cfg_val.length());
+    LOG_MSG(INF, NO_ERRNO,"msg length %d",cam->cfg_val.length());
 
-    app->status_msg += "Set Config: ";
+    cam->status_msg += "Set Config: ";
 
-    bufflen = (app->caminfo.cfg_nm.length() * 2) +
-        app->caminfo.cfg_val.length() + 60;
+    bufflen = (cam->cfg_nm.length() * 2) +
+        cam->cfg_val.length() + 60;
 
-    app->caminfo.cnct.msg = (char*)mymalloc(bufflen);
-        snprintf(app->caminfo.cnct.msg, bufflen
+    cam->cnct.msg = (char*)mymalloc(bufflen);
+        snprintf(cam->cnct.msg, bufflen
             ,"{\"Name\": \"%s\",\"%s\":%s,\"SessionID\":\"%08x\"}"
-            , app->caminfo.cfg_nm.c_str()
-            , app->caminfo.cfg_nm.c_str()
-            , app->caminfo.cfg_val.c_str()
-            , app->caminfo.cnct.sid);
-        fprintf(stderr, "\n\n%s\n\n",app->caminfo.cnct.msg);
-        camctl_socket_send(app, CONFIG_SET);
-        camctl_socket_read(app);
-    myfree(&app->caminfo.cnct.msg);
-    LOG_MSG(INF, NO_ERRNO,"Set Response %s", app->caminfo.val_out.c_str());
-    app->caminfo.val_out = "";
+            , cam->cfg_nm.c_str()
+            , cam->cfg_nm.c_str()
+            , cam->cfg_val.c_str()
+            , cam->cnct.sid);
+        fprintf(stderr, "\n\n%s\n\n",cam->cnct.msg);
+        camctl_socket_send(cam, CONFIG_SET);
+        camctl_socket_read(cam);
+    myfree(&cam->cnct.msg);
+    LOG_MSG(INF, NO_ERRNO,"Set Response %s", cam->val_out.c_str());
+    cam->val_out = "";
 }
 
 int main(int argc, char **argv)
@@ -614,9 +641,6 @@ int main(int argc, char **argv)
     app->argc = argc;
     app->argv = argv;
     app->conf = new ctx_config;
-    app->caminfo.pwd = "";
-    app->caminfo.user = "";
-    app->caminfo.ip = "";
 
     signal_setup();
     conf_init(app);
@@ -649,86 +673,86 @@ int main(int argc, char **argv)
 
 
 /*
-void hold_cmd_send(ctx_app *app)
+void hold_cmd_send(ctx_cam *cam)
 {
     struct ctx_msgsend  msgsend;
     char buffer_in[1024];
 
-    app->status_msg += " Logout:";
+    cam->status_msg += " Logout:";
 
-    camctl_prepare_md5(app);
+    camctl_prepare_md5(cam);
 
     snprintf(buffer_in, 1024
         ,"{\"LoginType\"   : \"camxmctl\" "
          ",\"PassWord\"    : \"%s\" "
          ",\"UserName\"    : \"%s\" "
          ",\"EncryptType\" : \"MD5\" }"
-         , app->caminfo.cnct.hash
-         , app->caminfo.user.c_str());
+         , cam->cnct.hash
+         , cam->user.c_str());
 
     msgsend.msg_id = LOGOUT_REQ;
-    msgsend.sid = app->caminfo.cnct.sid;
+    msgsend.sid = cam->cnct.sid;
     msgsend.buffer = (char*)mymalloc(strlen(buffer_in) + 21);
         camctl_prepare_message(&msgsend, buffer_in);
-        send(app->caminfo.cnct.sockfd
+        send(cam->cnct.sockfd
             , msgsend.buffer, msgsend.msg_size, 0 );
     free(msgsend.buffer);
-    close(app->caminfo.cnct.sockfd);
+    close(cam->cnct.sockfd);
 
-    app->caminfo.cnct.sockfd = 0;
-    app->caminfo.cnct.sid = 0;
-    app->caminfo.cnct.seq = 0;
+    cam->cnct.sockfd = 0;
+    cam->cnct.sid = 0;
+    cam->cnct.seq = 0;
 
     LOG_MSG(INF, NO_ERRNO,"logged out");
-    app->status_msg += "Success";
+    cam->status_msg += "Success";
 
 }
 
-void hold_logout(ctx_app *app)
+void hold_logout(ctx_cam *cam)
 {
     struct ctx_msgsend  msgsend;
     char buffer_in[1024];
 
-    app->status_msg += " Logout:";
+    cam->status_msg += " Logout:";
 
-    camctl_prepare_md5(app);
+    camctl_prepare_md5(cam);
 
     snprintf(buffer_in, 1024
         ,"{\"LoginType\"   : \"camxmctl\" "
          ",\"PassWord\"    : \"%s\" "
          ",\"UserName\"    : \"%s\" "
          ",\"EncryptType\" : \"MD5\" }"
-         , app->caminfo.cnct.hash
-         , app->caminfo.user.c_str());
+         , cam->cnct.hash
+         , cam->user.c_str());
 
     msgsend.msg_id = LOGOUT_REQ;
-    msgsend.sid = app->caminfo.cnct.sid;
+    msgsend.sid = cam->cnct.sid;
     msgsend.buffer = (char*)mymalloc(strlen(buffer_in) + 21);
         camctl_prepare_message(&msgsend, buffer_in);
-        send(app->caminfo.cnct.sockfd
+        send(cam->cnct.sockfd
             , msgsend.buffer, msgsend.msg_size, 0 );
     free(msgsend.buffer);
-    close(app->caminfo.cnct.sockfd);
+    close(cam->cnct.sockfd);
 
-    app->caminfo.cnct.sockfd = 0;
-    app->caminfo.cnct.sid = 0;
-    app->caminfo.cnct.seq = 0;
+    cam->cnct.sockfd = 0;
+    cam->cnct.sid = 0;
+    cam->cnct.seq = 0;
 
     LOG_MSG(INF, NO_ERRNO,"logged out");
-    app->status_msg += "Success";
+    cam->status_msg += "Success";
 
 }
-static void camctl_config_write(ctx_app *app)
+static void camctl_config_write(ctx_cam *cam)
 {
   std::ofstream cfgfile;
 
   cfgfile.open ("sample.json");
-  cfgfile << app->caminfo.cfg_val;
+  cfgfile << cam->cfg_val;
   cfgfile.close();
 
 }
 
-static void camctl_config_export(ctx_app *app)
+static void camctl_config_export(ctx_cam *cam)
 {
     struct ctx_msgsend  msgsend;
     struct ctx_msgresp  resp;
@@ -740,9 +764,9 @@ static void camctl_config_export(ctx_app *app)
 
     msgsend.msg_id = CONFIG_EXPORT_REQ;
     camctl_prepare_message(&msgsend, buffer_in);
-    sbytes = send(app->caminfo.cnct.sockfd, msgsend.buffer, msgsend.msg_size, 0 );
+    sbytes = send(cam->cnct.sockfd, msgsend.buffer, msgsend.msg_size, 0 );
 
-    sbytes = read(app->caminfo.cnct.sockfd, buffer_out, 1024);
+    sbytes = read(cam->cnct.sockfd, buffer_out, 1024);
     if (sbytes >= 20) {
         printf(" command sbytes read =%ld\n", sbytes);
         memcpy(&resp, buffer_out, sizeof(struct ctx_msgresp));
@@ -765,7 +789,7 @@ static void camctl_config_export(ctx_app *app)
     }
 
 }
-static void camctl_config_print(ctx_app *app)
+static void camctl_config_print(ctx_cam *cam)
 {
     struct ctx_msgsend  msgsend;
     struct ctx_msgresp  resp;
@@ -775,14 +799,14 @@ static void camctl_config_print(ctx_app *app)
 
     snprintf(buffer_in, 1024, "{\"SessionID\" : \"0x%08x\" "
         ",\"Name\": \"%s\"  } "
-        , app->caminfo.cnct.sid, "opt");
+        , cam->cnct.sid, "opt");
 
     msgsend.msg_id = CONFIG_GET;
     camctl_prepare_message(&msgsend, buffer_in);
 
-    sbytes = send(app->caminfo.cnct.sockfd, msgsend.buffer, msgsend.msg_size, 0);
+    sbytes = send(cam->cnct.sockfd, msgsend.buffer, msgsend.msg_size, 0);
 
-    sbytes = read(app->caminfo.cnct.sockfd, buffer_out, 2048);
+    sbytes = read(cam->cnct.sockfd, buffer_out, 2048);
     if (sbytes >= 20) {
         LOG_MSG(INF, NO_ERRNO,"command sbytes read =%ld", sbytes);
         memcpy(&resp, buffer_out, sizeof(struct ctx_msgresp));
@@ -842,34 +866,34 @@ static void camctl_config_print(ctx_app *app)
             CommPtz,Record,NetServer,CameraPARAM,Account,Encode,General,NetC
             ommon,Factory,Preview,Alarm
 
-    config_print(app,"Ability");
-    config_print(app,"Alarm");
-    config_print(app,"Alarm.second");
-    config_print(app,"AVEnc");
-    config_print(app,"AVEnc.second");
-    config_print(app,"Camera");
-    config_print(app,"Camera.second");
-    config_print(app,"Detect");
-    config_print(app,"Detect.second");
-    config_print(app,"fVideo");
-    config_print(app,"fVideo.second");
-    config_print(app,"General");
-    config_print(app,"General.second");
-    config_print(app,"Guide");
-    config_print(app,"NetWork");
-    config_print(app,"NetWork.second");
-    config_print(app,"OEMcfg");
-    config_print(app,"OEMcfg.second");
-    config_print(app,"Produce");
-    config_print(app,"Record");
-    config_print(app,"Record.second");
-    config_print(app,"SplitMode");
-    config_print(app,"Storage");
-    config_print(app,"Storage.second");
-    config_print(app,"System");
-    config_print(app,"System.second");
-    config_print(app,"Uart");
-    config_print(app,"Uart.second");
+    config_print(cam,"Ability");
+    config_print(cam,"Alarm");
+    config_print(cam,"Alarm.second");
+    config_print(cam,"AVEnc");
+    config_print(cam,"AVEnc.second");
+    config_print(cam,"Camera");
+    config_print(cam,"Camera.second");
+    config_print(cam,"Detect");
+    config_print(cam,"Detect.second");
+    config_print(cam,"fVideo");
+    config_print(cam,"fVideo.second");
+    config_print(cam,"General");
+    config_print(cam,"General.second");
+    config_print(cam,"Guide");
+    config_print(cam,"NetWork");
+    config_print(cam,"NetWork.second");
+    config_print(cam,"OEMcfg");
+    config_print(cam,"OEMcfg.second");
+    config_print(cam,"Produce");
+    config_print(cam,"Record");
+    config_print(cam,"Record.second");
+    config_print(cam,"SplitMode");
+    config_print(cam,"Storage");
+    config_print(cam,"Storage.second");
+    config_print(cam,"System");
+    config_print(cam,"System.second");
+    config_print(cam,"Uart");
+    config_print(cam,"Uart.second");
     */
 
 

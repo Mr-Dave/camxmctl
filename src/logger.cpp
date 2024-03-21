@@ -37,7 +37,7 @@ static void log_set_mode(int mode)
     log_mode = mode;
 
     if (mode == LOGMODE_SYSLOG && prev_mode != LOGMODE_SYSLOG) {
-        openlog("restream", LOG_PID, LOG_USER);
+        openlog("camxmctl", LOG_PID, LOG_USER);
     }
 
     if (mode != LOGMODE_SYSLOG && prev_mode == LOGMODE_SYSLOG) {

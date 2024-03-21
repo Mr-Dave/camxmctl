@@ -1,18 +1,18 @@
 /*
- *    This file is part of Restream.
+ *    This file is part of camxmctl.
  *
- *    Restream is free software: you can redistribute it and/or modify
+ *    camxmctl is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
  *    the Free Software Foundation, either version 3 of the License, or
  *    (at your option) any later version.
  *
- *    Restream is distributed in the hope that it will be useful,
+ *    camxmctl is distributed in the hope that it will be useful,
  *    but WITHOUT ANY WARRANTY; without even the implied warranty of
  *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *    GNU General Public License for more details.
  *
  *    You should have received a copy of the GNU General Public License
- *    along with Restream.  If not, see <https://www.gnu.org/licenses/>.
+ *    along with camxmctl.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -94,13 +94,13 @@
         struct timespec             time_last;      /* Keep track of processing time for stream thread*/
         int                         mhd_first;      /* Boolean for whether it is the first connection*/
         struct MHD_Connection       *connection;    /* The MHD connection value from the client */
-        ctx_app                     *app;           /* The Restream application pointer */
-
+        ctx_app                     *app;           /* The application pointer */
+        ctx_cam                     *cam;       /* The camera info pointer */
         int                         post_sz;        /* The number of entries in the post info */
         std::string                 post_cmd;       /* The command sent with the post */
         ctx_key                     *post_info;     /* Structure of the entries provided from the post data */
         struct MHD_PostProcessor    *post_processor; /* Processor for handling Post method connections */
-
+        ctx_params                  uri_parms;       /* Entries provided from the get uri */
     };
 
     void webu_init(ctx_app *app);

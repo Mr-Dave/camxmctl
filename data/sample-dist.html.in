@@ -270,15 +270,15 @@
           </td>          
           <td>
             <input type='button' id=reboot    value='Reboot' class='cmdbtn' onclick='cmd_reboot()'>
-            <input type='button' id=configget value='Config' class='cmdbtn' onclick='get_config()'>
+            <input type='button' id=configget value='Config' class='cmdbtn' onclick='get_config("current")'>
             <br>
             <input type='button' id=users  value='Users' class='cmdbtn' onclick='get_users()'>
             <input type='button' id=groups value='Groups' class='cmdbtn' onclick='get_groups()'>
           </td>
           <td>
-            <input type='button' id=time1 value='Set Time v1' class='cmdbtn2' onclick='cmd_time(1)'>
+            <input type='button' id=time value='Set Time' class='cmdbtn2' onclick='cmd_time()'>
             <br>
-            <input type='button' id=time2 value='Set Time v2' class='cmdbtn2' onclick='cmd_time(2)'>
+            <input type='button' id=default value='Defaults' class='cmdbtn2' onclick='get_config("default")'>
             <br>
           </td>
           <td>
@@ -320,8 +320,11 @@
     var pStatus, pHostFull;
     var html_opt, html_tbl;
     var cnt_opt, cnt_tbl;
-    var fullkey;
+    var fullkey, token;
     
+    var rand = function() {
+      return Math.random().toString(36).substr(2); // remove `0.`
+    };    
     function initform() {
       pHostFull = '//' + window.location.hostname;
       pHostFull = pHostFull + ':' + window.location.port;                       
@@ -337,8 +340,8 @@
     function cmd_reboot() {
       var formData = new FormData();
       var request = new XMLHttpRequest();
-
       status_update ("connecting");
+      token = rand() + rand();
       
       request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
@@ -350,30 +353,30 @@
       formData.append('password', document.getElementById("password").value);
       formData.append('ip', document.getElementById("ip").value);
       formData.append('port', document.getElementById("port").value);
-
+    	formData.append('token', token); 
+    	
       request.open('POST', pHostFull);
       request.send(formData);
     }
-    function cmd_time(parm_val) {
+    function cmd_time() {
       var formData = new FormData();
       var request = new XMLHttpRequest();
 
       status_update ("connecting");
+      token = rand() + rand();
       
       request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           status_update("ready");
         }
       };
-      if (parm_val == 1) {
-        formData.append('command', 'settime1');
-      } else {
-        formData.append('command', 'settime2');
-      }  
+
+      formData.append('command', 'settime');
       formData.append('user', document.getElementById("user").value);
       formData.append('password', document.getElementById("password").value);
       formData.append('ip', document.getElementById("ip").value);
       formData.append('port', document.getElementById("port").value);
+      formData.append('token', token);
 
       request.open('POST', pHostFull);
       request.send(formData);
@@ -383,6 +386,7 @@
       var request = new XMLHttpRequest();
 
       status_update ("connecting");
+      token = rand() + rand();
       
       request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
@@ -396,36 +400,34 @@
       formData.append('port', document.getElementById("port").value);
       formData.append('ptz_action', 'ptz_action');
       formData.append('ptz_duration', document.getElementById("ptz_dur").value);
-      
+      formData.append('token', token);
+     
       request.open('POST', pHostFull);
       request.send(formData);
     }
-    function get_config() {
+    function get_config(cfgtype) {
       var frmdata = new FormData();
       var request = new XMLHttpRequest();
       var xmlhttp = new XMLHttpRequest();
 
       status_update ("connecting");
-      
+      token = rand() + rand();
+
       xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           pData = JSON.parse(this.responseText);
           load_config();
-          frmdata.set('command','logout');          
-          request.open('POST', pHostFull);
-          request.send(frmdata);
         }
       };
       request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
-          if (frmdata.get('command') == 'login') {
-            status_update("Logged in");       
-            xmlhttp.open('GET', pHostFull+'/json/all');
-            xmlhttp.send();
-            status_update("Getting configuration");
+          if(cfgtype == "current") {
+            xmlhttp.open('GET', pHostFull+'/json/all?token='+token);
           } else {
-            status_update("ready");
-          }
+            xmlhttp.open('GET', pHostFull+'/json/default?token='+token);
+          }  
+          xmlhttp.send();
+          status_update("Getting configuration");
         }
       };
       frmdata.append('command', 'login');
@@ -433,6 +435,7 @@
       frmdata.append('password', document.getElementById("password").value);
       frmdata.append('ip', document.getElementById("ip").value);
       frmdata.append('port', document.getElementById("port").value);
+      frmdata.append('token',token);
 
       request.open('POST', pHostFull);
       request.send(frmdata);
@@ -546,7 +549,6 @@
       }
       
     }
-    
     function config_set_obj(jObj, indx) {
       var tst, new_val, net_txt, new_bool;      
 
@@ -599,7 +601,6 @@
         })
       }
     }
-
     function config_set() {
       var formData = new FormData();
       var request = new XMLHttpRequest();

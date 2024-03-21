@@ -204,27 +204,56 @@ void webu_json_config_camxmctl(ctx_webui *webui)
 
 }
 
+void webu_json_token(ctx_webui *webui)
+{
+    std::list<ctx_params_item>::iterator    it;
+
+    for (it  = webui->uri_parms.params_array.begin();
+         it != webui->uri_parms.params_array.end(); it++) {
+        if (it->param_name == "token") {
+            webui->cam->token = it->param_value;
+        }
+    }
+}
+
 void webu_json_config(ctx_webui *webui)
 {
     webui->resp_type = WEBUI_RESP_JSON;
     webui->resp_page = "";
 
+    webu_json_token(webui);
+
     if (webui->uri_cmd1 == "all") {
-        webui->app->status_msg = "";
-        camctl_config_get_all(webui->app);
-        webui->resp_page = webui->app->caminfo.val_out;
+        camctl_login(webui->cam);
+        webui->cam->status_msg = "";
+        camctl_config_get_all(webui->cam,"config");
+        webui->resp_page = webui->cam->val_out;
+        camctl_logout(webui->cam);
+
+    } else if (webui->uri_cmd1 == "default") {
+        camctl_login(webui->cam);
+        webui->cam->status_msg = "";
+        camctl_config_get_all(webui->cam,"default");
+        webui->resp_page = webui->cam->val_out;
+        camctl_logout(webui->cam);
+
 
     } else if (webui->uri_cmd1 == "status") {
         webui->resp_page += "{\"status\" : \"";
-        webui->resp_page += webui->app->status_msg;
+        webui->resp_page += webui->cam->status_msg;
         webui->resp_page += "\"}";
 
     } else if (webui->uri_cmd1 == "config") {
+        camctl_login(webui->cam);
         webu_json_config_camxmctl(webui);
+        camctl_logout(webui->cam);
 
     } else {
-        camctl_config_get_jstr(webui->app, webui->uri_cmd1);
-        webui->resp_page = webui->app->caminfo.val_out;
+        camctl_login(webui->cam);
+        camctl_config_get_jstr(webui->cam, webui->uri_cmd1);
+        webui->resp_page = webui->cam->val_out;
+        camctl_logout(webui->cam);
+
     }
 }
 
