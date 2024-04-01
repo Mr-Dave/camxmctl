@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang='en'>
-<head> 
-<meta charset='UTF-8'> 
-<title>CamxmctlDev</title> 
-<meta name='viewport' content='width=device-width, initial-scale=1'> 
+<head>
+<meta charset='UTF-8'>
+<title>CamxmctlDev</title>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
   <style>
     * {
       margin: 0;
@@ -215,22 +215,22 @@
     .cmdbtn2 {
       width:7rem;
       text-align:center;
-    }  
+    }
   </style>
 </head>
 
 <body class='body' onload='initform()'>
-  
+
   <div id='divmain' style='margin-left:10rem' >
     <div id='div_config'>
-      <br><br>      
-      <div id=div_status>      
+      <br><br>
+      <div id=div_status>
         <table style='color:white; width:80%;' >
           <tr>
-            <td align='center'>status</td>            
+            <td align='center'>status</td>
           </tr>
         </table>
-      </div>  
+      </div>
       <table style='color:white; width:80%;' >
         <colgroup width='20%'></colgroup>
         <colgroup width='20%'></colgroup>
@@ -241,7 +241,7 @@
           <td align='left'><input id=ip  type="text"></td>
           <td align='left'><b>Port</b></td>
           <td align='left'><input id=port  type="text" value=34567></td>
-        </tr>        
+        </tr>
         <tr>
           <td align='left'><b>User</b></td>
           <td align='left'><input id=user  type="text" value='admin'></td>
@@ -252,22 +252,22 @@
         <tr>
           <td>
           <label for='ptz_down' style='text-align:center;' >Pan/Tilt</label>
-          <br>          
-          <input type='button' id=ptz_up   value='Up'   class='cmdbtn' onclick='cmd_ptz("DirectionUp")'>
-          <input type='button' id=ptz_down value='Down' class='cmdbtn' onclick='cmd_ptz("DirectionDown")'>          
           <br>
-          <input type='button' id=ptz_up   value='Left' class='cmdbtn' onclick='cmd_ptz("DirectionLeft")'>          
+          <input type='button' id=ptz_up   value='Up'   class='cmdbtn' onclick='cmd_ptz("DirectionUp")'>
+          <input type='button' id=ptz_down value='Down' class='cmdbtn' onclick='cmd_ptz("DirectionDown")'>
+          <br>
+          <input type='button' id=ptz_up   value='Left' class='cmdbtn' onclick='cmd_ptz("DirectionLeft")'>
           <input type='button' id=ptz_up   value='Right' class='cmdbtn' onclick='cmd_ptz("DirectionRight")'>
-          </td>          
+          </td>
           <td>
           <label for='ptz_zoomin' style='text-align:center;' >Zoom</label>
           <br><input type='button' id=ptz_zoomin value='In'   class='cmdbtn' onclick='cmd_ptz("ZoomTile")'>
-          <input type='button' id=ptz_zoomout value='Out' class='cmdbtn' onclick='cmd_ptz("ZoomWide")'>          
+          <input type='button' id=ptz_zoomout value='Out' class='cmdbtn' onclick='cmd_ptz("ZoomWide")'>
           <br>
           <label for='ptz_dur' style='text-align:center;' >PTZ Duration(Seconds)</label>
-          <br>          
+          <br>
           <input type='text' style='text-align:right;' id='ptz_dur' value='0.5'></td>
-          </td>          
+          </td>
           <td>
             <input type='button' id=reboot    value='Reboot' class='cmdbtn' onclick='cmd_reboot()'>
             <input type='button' id=configget value='Config' class='cmdbtn' onclick='get_config("current")'>
@@ -282,37 +282,37 @@
             <br>
           </td>
           <td>
-          </td>        
+          </td>
         </tr>
         <tr><td><br></td></tr>
         <tr><td><br></td></tr>
-        <tr>                    
+        <tr>
           <td><br></td>
-          <td><br></td>          
+          <td><br></td>
         </tr>
         <tr>
-          <td id="td00"></td>          
+          <td id="td00"></td>
           <td id="td01"></td>
           <td id="td02"></td>
-          <td id="td03"></td>          
+          <td id="td03"></td>
         </tr>
         <tr>
           <td id= "td10"></td>
           <td id= "td11"></td>
           <td id= "td12"></td>
           <td id= "td13"></td>
-        </tr>                        
+        </tr>
         <tr>
           <td id= "td20"></td>
           <td id= "td21"></td>
           <td id= "td22"></td>
           <td id= "td23"></td>
-        </tr>                        
+        </tr>
       </table>
 
       <div id="div_tbl">
       </div>
-      
+
   </div>
 
   <script>
@@ -321,13 +321,13 @@
     var html_opt, html_tbl;
     var cnt_opt, cnt_tbl;
     var fullkey, token;
-    
+
     var rand = function() {
       return Math.random().toString(36).substr(2); // remove `0.`
-    };    
+    };
     function initform() {
       pHostFull = '//' + window.location.hostname;
-      pHostFull = pHostFull + ':' + window.location.port;                       
+      pHostFull = pHostFull + ':' + window.location.port;
     }
     function status_update(msg) {
       var html_status;
@@ -342,7 +342,7 @@
       var request = new XMLHttpRequest();
       status_update ("connecting");
       token = rand() + rand();
-      
+
       request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           status_update("ready");
@@ -353,8 +353,8 @@
       formData.append('password', document.getElementById("password").value);
       formData.append('ip', document.getElementById("ip").value);
       formData.append('port', document.getElementById("port").value);
-    	formData.append('token', token); 
-    	
+    	formData.append('token', token);
+
       request.open('POST', pHostFull);
       request.send(formData);
     }
@@ -364,7 +364,7 @@
 
       status_update ("connecting");
       token = rand() + rand();
-      
+
       request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           status_update("ready");
@@ -387,7 +387,7 @@
 
       status_update ("connecting");
       token = rand() + rand();
-      
+
       request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           status_update("ready");
@@ -398,10 +398,10 @@
       formData.append('password', document.getElementById("password").value);
       formData.append('ip', document.getElementById("ip").value);
       formData.append('port', document.getElementById("port").value);
-      formData.append('ptz_action', 'ptz_action');
+      formData.append('ptz_action', ptz_action);
       formData.append('ptz_duration', document.getElementById("ptz_dur").value);
       formData.append('token', token);
-     
+
       request.open('POST', pHostFull);
       request.send(formData);
     }
@@ -425,7 +425,7 @@
             xmlhttp.open('GET', pHostFull+'/json/all?token='+token);
           } else {
             xmlhttp.open('GET', pHostFull+'/json/default?token='+token);
-          }  
+          }
           xmlhttp.send();
           status_update("Getting configuration");
         }
@@ -446,12 +446,12 @@
       var xmlhttp = new XMLHttpRequest();
 
       status_update ("connecting");
-      
+
       xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           pUsers = JSON.parse(this.responseText);
           load_users();
-          frmdata.set('command','logout');          
+          frmdata.set('command','logout');
           request.open('POST', pHostFull);
           request.send(frmdata);
         }
@@ -459,7 +459,7 @@
       request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           if (frmdata.get('command') == 'login') {
-            status_update("Logged in");       
+            status_update("Logged in");
             xmlhttp.open('GET', pHostFull+'/json/users');
             xmlhttp.send();
             status_update("Getting users");
@@ -483,12 +483,12 @@
       var xmlhttp = new XMLHttpRequest();
 
       status_update ("connecting");
-      
+
       xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           pGroups = JSON.parse(this.responseText);
           load_groups();
-          frmdata.set('command','logout');          
+          frmdata.set('command','logout');
           request.open('POST', pHostFull);
           request.send(frmdata);
         }
@@ -496,7 +496,7 @@
       request.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           if (frmdata.get('command') == 'login') {
-            status_update("Logged in");       
+            status_update("Logged in");
             xmlhttp.open('GET', pHostFull+'/json/users');
             xmlhttp.send();
             status_update("Getting groups");
@@ -519,7 +519,7 @@
       pos = new Array(-1,-1,-1,-1);
       ipval = new Array(-1,-1,-1,-1);
       iphx = new Array("","","","");
-      
+
       ipstr = document.getElementById(idnm+"1").value;
 
       for (indx=0; indx < 4; indx++) {
@@ -527,68 +527,68 @@
         if (indx < 3) {
           if (pos[indx] < 0) {
             alert("Invalid IP");
-            return;          
-          }        
+            return;
+          }
           ipval[indx] = ipstr.substr(0, pos[indx]);
         } else {
           ipval[indx] = ipstr;
         }
         if (ipval[indx] > 255){
           alert("Invalid IP");
-          return;          
-        }        
+          return;
+        }
         ipstr = ipstr.substr(pos[indx]+1);
-        iphx[indx] = ("00" + parseInt(ipval[indx]).toString(16)).toUpperCase();      
+        iphx[indx] = ("00" + parseInt(ipval[indx]).toString(16)).toUpperCase();
         iphx[indx] = iphx[indx].substr(iphx[indx].length -2);
       }
       ipstr = document.getElementById(idnm+"1").value;
       ipnew = "0x"+iphx[3]+iphx[2]+iphx[1]+iphx[0];
       if (document.getElementById(idnm).value != ipnew) {
         document.getElementById(idnm).value = ipnew;
-        set_reboot = true;        
+        set_reboot = true;
       }
-      
+
     }
     function config_set_obj(jObj, indx) {
-      var tst, new_val, net_txt, new_bool;      
+      var tst, new_val, net_txt, new_bool;
 
       if ((indx > 0) &&  (indx < 9)) {
         cfg = document.getElementById("cfgdrop"+indx).value;
       } else {
-        cfg =""; 
+        cfg ="";
       }
       if (cfg == "") {
         Object.entries(jObj).forEach((entry) => {
           const [key_nm, key_val] = entry;
           tst = typeof key_val;
-          if (tst != "object") {      
-            //console.log("chk: "+key_nm);          
+          if (tst != "object") {
+            //console.log("chk: "+key_nm);
             if (tst == "boolean") {
               if (document.getElementById(key_nm).value == "true"){
                 new_bool = true;
               } else {
                 new_bool = false;
               }
-              if (new_val != key_val) {              
+              if (new_val != key_val) {
                 jObj[key_nm] = new_bool;
                 console.log("change: "+fullkey+" key"+key_nm+" >"+key_val+"<>"+new_bool+"<");
-              }  
+              }
             } else if (tst == "number") {
               new_val = Number(document.getElementById(key_nm).value);
-              if (new_val != key_val) {              
+              if (new_val != key_val) {
                 jObj[key_nm] = Number(new_val);
                 console.log("change: "+fullkey+" key"+key_nm+" >"+key_val+"<>"+new_val+"<");
-              }         
+              }
             } else {
               //console.log("var type: "+tst);
-              new_txt = document.getElementById(key_nm).value;          
-              if (new_txt != key_val) {              
+              new_txt = document.getElementById(key_nm).value;
+              if (new_txt != key_val) {
                 jObj[key_nm] = new_txt;
                 console.log("change: "+fullkey+" key"+key_nm+" >"+key_val+"<>"+new_txt+"<");
               }
             }
           }
-        })      
+        })
       } else {
         Object.entries(jObj).forEach((entry) => {
           const [key_nm, key_val] = entry;
@@ -596,7 +596,7 @@
           if ((tst == "object") && (key_nm == cfg)) {
             //console.log("obj: "+key_nm);
             jObj = jObj[cfg];
-            config_set_obj(jObj, indx+1);          
+            config_set_obj(jObj, indx+1);
           }
         })
       }
@@ -607,13 +607,13 @@
       var xmlhttp = new XMLHttpRequest();
       var pStatus, key_val, indx;
       var jNew, new_val, chk_arr, cfg;
-      
+
       status_update ("connecting");
-      
+
       xmlhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
           pStatus = JSON.parse(this.responseText);
-          status_update(pStatus['status']);          
+          status_update(pStatus['status']);
         }
       };
       request.onreadystatechange = function() {
@@ -622,14 +622,14 @@
           xmlhttp.send();
         }
       };
-      
+
       cfg = document.getElementById("cfgdrop0").value;
       jNew = pData[cfg][cfg];
       fullkey = cfg;
-            
-      chk_arr = -1      
-      for (indx=1; indx < 9; indx++) {      
-        cfg = document.getElementById("cfgdrop"+indx).value;          
+
+      chk_arr = -1
+      for (indx=1; indx < 9; indx++) {
+        cfg = document.getElementById("cfgdrop"+indx).value;
         if ((cfg != "") && (chk_arr == -1)) {
           jNew = jNew[cfg];
           fullkey = fullkey + "." + cfg;
@@ -642,8 +642,8 @@
       key_val = JSON.stringify(jNew);
 
       //console.log("key val: "+key_val);
-     
-      formData.append('command', 'configset');      
+
+      formData.append('command', 'configset');
       formData.append('user', document.getElementById("user").value);
       formData.append('password', document.getElementById("password").value);
       formData.append('ip', document.getElementById("ip").value);
@@ -655,14 +655,14 @@
       request.send(formData);
     }
     function opt_clear(optobj) {
-      var indx, indx_max;      
+      var indx, indx_max;
       indx_max = optobj.options.length - 1;
       for(indx = indx_max; indx >= 0; indx--) {
         optobj.remove(indx);
       }
     }
     function load_config() {
-      var indx;      
+      var indx;
       html_opt = "";
       html_opt += "<select class='cls_drop'";
       html_opt += " onchange='dropchange_cfg(this, 0)'";
@@ -680,11 +680,11 @@
       html_opt += " <option value='StorageGlobal'>StorageGlobal</option>";
       html_opt += " <option value='System'>System</option>";
       html_opt += " <option value='Uart'>Uart</option>";
-      html_opt += "</select>";  
+      html_opt += "</select>";
       document.getElementById('td00').innerHTML = html_opt;
       document.getElementById('cfgdrop0').selectedIndex = "-1";
       document.getElementById('div_tbl').innerHTML = "<table></table>";
-      
+
       for (indx=1; indx <=8; indx++) {
         html_opt = "";
         html_opt += "<select class='cls_drop'";
@@ -694,14 +694,14 @@
           document.getElementById('td1'+(indx-1)).innerHTML = html_opt;
         } else if (indx <= 8) {
           document.getElementById('td2'+(indx-5)).innerHTML = html_opt;
-        }  
+        }
       }
     }
     function load_users() {
- 
+
     }
     function load_groups() {
- 
+
     }
     function tblopt_base() {
       document.getElementById('div_tbl').innerHTML = "<table></table>";
@@ -722,15 +722,15 @@
 	    html_tbl += " </td>";
       html_tbl += "</tr>";
       html_tbl += "<tr><br><td></td><td></td><td></td><td></td></tr>";
-      html_tbl += "<tr><td> Key </td><td> Value </td><td></td></tr>"; 
+      html_tbl += "<tr><td> Key </td><td> Value </td><td></td></tr>";
       html_tbl += "<tr><br><td></td><td></td><td></td><td></td></tr>";
-	       
+
       cnt_opt = 0;
       cnt_tbl = 0;
     }
     function tblopt_bool(key_nm, key_val) {
       html_tbl += "<tr>";
-	    html_tbl += "<td>"+ key_nm +"</td>"; 
+	    html_tbl += "<td>"+ key_nm +"</td>";
       html_tbl += "<td>";
       html_tbl += " <select class='cls_drop' ";
       html_tbl += " id='" + key_nm  + "'> ";
@@ -743,66 +743,66 @@
 	    }
 	    html_tbl += " </select>";
 	    html_tbl += "</td>";
-      html_tbl += "<td></td></tr>"; 	        
+      html_tbl += "<td></td></tr>";
 	    cnt_tbl++;
     }
     function tblopt_ip(key_nm, key_val) {
       var tmp;
       html_tbl += "<tr>";
-      html_tbl += "<td>"+ key_nm +"</td>"; 
-      html_tbl += "<td><input type='text' "; 
+      html_tbl += "<td>"+ key_nm +"</td>";
+      html_tbl += "<td><input type='text' ";
       html_tbl += " style='text-align:right;'";
       html_tbl += " name='"+key_nm+"'";
-      html_tbl += " id='" + key_nm  + "' ";          
+      html_tbl += " id='" + key_nm  + "' ";
       html_tbl += " value='"+key_val+"' disabled></td>";
-      
-      html_tbl += "<td><input type='text' "; 
+
+      html_tbl += "<td><input type='text' ";
       html_tbl += " class='cls_ip'";
       html_tbl += " name='"+key_nm+"1'";
-      html_tbl += " id='" + key_nm  + "1' ";          
+      html_tbl += " id='" + key_nm  + "1' ";
       html_tbl += " value='"
       if (key_val != ""){
         html_tbl += parseInt(key_val.substr(8,2),16)+".";
         html_tbl += parseInt(key_val.substr(6,2),16)+".";
         html_tbl += parseInt(key_val.substr(4,2),16)+".";
         html_tbl += parseInt(key_val.substr(2,2),16);
-      }   
+      }
       html_tbl += "'</td>";
       html_tbl += " <td><input type='button'";
       html_tbl += "   value='Set IP' ";
       html_tbl += "   onclick=config_ip('";
-      html_tbl += key_nm  + "')> "   
+      html_tbl += key_nm  + "')> "
 	    html_tbl += " </td>";
 
-      html_tbl += "</tr>"; 	        
-	    cnt_tbl++; 
+      html_tbl += "</tr>";
+	    cnt_tbl++;
     }
     function tblopt_other(key_nm, key_val) {
       html_tbl += "<tr>";
-      html_tbl += "<td>"+ key_nm +"</td>"; 
-      html_tbl += "<td><input type='text' "; 
+      html_tbl += "<td>"+ key_nm +"</td>";
+      html_tbl += "<td><input type='text' ";
       html_tbl += " style='text-align:right;'";
       html_tbl += " name='"+key_nm+"'";
-      html_tbl += " id='" + key_nm  + "' ";          
+      html_tbl += " id='" + key_nm  + "' ";
       html_tbl += " value='"+key_val+"'></td>";
-      html_tbl += "<td></td></tr>"; 	        
-	    cnt_tbl++; 
+      html_tbl += "<td></td></tr>";
+	    cnt_tbl++;
     }
     function tblopt_build(jData) {
       if (typeof jData == "undefined") {
         return;
-      }      
+      }
       Object.entries(jData).forEach((entry) => {
-        const [key_nm, key_val] = entry;        
-        tst = typeof key_val;        
+        const [key_nm, key_val] = entry;
+        tst = typeof key_val;
         if (tst == "object") {
           html_opt += "<option value='"+key_nm+"'>"+key_nm+"</option>";
-          cnt_opt++;        
-        } else if (tst == "boolean"){            
+          cnt_opt++;
+        } else if (tst == "boolean"){
           tblopt_bool(key_nm, key_val);
-        } else {            
-          if ((key_nm == "GateWay")     ||  (key_nm == "HostIP") || 
-              (key_nm == "Submask")     ||  (key_nm == "DnsServer1") ||  
+        } else {
+          if ((key_nm == "GateWay")     ||  (key_nm == "HostIP") ||
+              (key_nm == "Submask")     ||  (key_nm == "DnsServer1") ||
               (key_nm == "DnsServer2")  ||  (key_nm == "SpareAddress") ||
               (key_nm == "Address")) {
             tblopt_ip(key_nm, key_val);
@@ -810,12 +810,12 @@
             tblopt_other(key_nm, key_val);
           }
         }
-        
+
       });
     }
     function dropchange_cfg(cfgobj, nbr) {
-      var jData, cfgitm, indx, dropid; 
-             
+      var jData, cfgitm, indx, dropid;
+
       for (indx=0; indx <9; indx++) {
         dropid = "cfgdrop"+indx;
         if (indx == 0) {
@@ -823,22 +823,22 @@
           jData = pData[cfgitm][cfgitm];
         } else if (indx <= nbr) {
           cfgitm= document.getElementById(dropid).value;
-          jData = jData[cfgitm];                
+          jData = jData[cfgitm];
         } else {
           opt_clear(document.getElementById(dropid));
         }
       }
-    
+
       indx = nbr+1;
       dropid = "cfgdrop"+indx;
-      
+
       tblopt_base();
       html_opt = "";
       html_opt += " <select class='cls_drop' ";
       html_opt += " onchange='dropchange_cfg(this,"
       html_opt += indx + ")'";
       html_opt += " id='"+dropid+"'>";
- 
+
       tblopt_build(jData);
 
       if (cnt_opt > 0) {
@@ -847,13 +847,13 @@
           document.getElementById('td1'+(indx-1)).innerHTML = html_opt;
         } else if (indx <= 8) {
           document.getElementById('td2'+(indx-5)).innerHTML = html_opt;
-        }  
+        }
         document.getElementById(dropid).selectedIndex = "-1";
       }
       if (cnt_tbl > 0) {
         html_tbl  += "</table>";
         document.getElementById('div_tbl').innerHTML = html_tbl;
-      }  
+      }
     }
 
   </script>
